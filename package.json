@@ -1,0 +1,12 @@
+{
+    "name": "masteryyh-system",
+    "private": true,
+    "version": "0.0.1",
+    "type": "module",
+    "scripts": {
+        "frontend:dev": "pnpm --filter frontend dev",
+        "frontend:build": "pnpm --filter frontend build",
+        "backend:build": "cd backend && ./gradlew build --no-daemon --console=plain"
+    },
+    "packageManager": "pnpm@11.1.3"
+}
