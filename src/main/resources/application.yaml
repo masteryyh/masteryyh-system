@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: masteryyh-system
+  datasource:
+    url: jdbc:postgresql://truenas.internal.masteryyh.win:5432/masteryyh
+    username: postgres
+    password: abc123456
+  data:
+    redis:
+      host: truenas.internal.masteryyh.win
+      port: 6379
+      password: abc123456
+
+management:
+  endpoints:
+    web:
+      base-path: "/metrics"
+      exposure:
+        include: "*"
+
+system:
+  jwt-secret: change-this-secret-to-at-least-32-characters
+  admin:
+    username: admin
+    password: abc123456
+    email: admin@example.com
