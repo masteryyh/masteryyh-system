@@ -1,0 +1,3 @@
+singleServerConfig:
+  address: "redis://truenas.internal.masteryyh.win:6379/0"
+password: abc123456

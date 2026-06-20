@@ -37,8 +37,8 @@ public class GenericResponseAdvisor implements ResponseBodyAdvice<Object> {
     @Override
     public boolean supports(MethodParameter returnType,
                             Class<? extends HttpMessageConverter<?>> converterType) {
-        return returnType.hasMethodAnnotation(IgnoreResponseAdvice.class) ||
-                returnType.getContainingClass().isAnnotationPresent(IgnoreResponseAdvice.class);
+        return !returnType.hasMethodAnnotation(IgnoreResponseAdvice.class) &&
+                !returnType.getContainingClass().isAnnotationPresent(IgnoreResponseAdvice.class);
     }
 
     @Override
@@ -48,33 +48,21 @@ public class GenericResponseAdvisor implements ResponseBodyAdvice<Object> {
                                             Class<? extends HttpMessageConverter<?>> selectedConverterType,
                                             ServerHttpRequest request,
                                             ServerHttpResponse response) {
-        if (body == null) {
-            return GenericResponse.ok();
-        }
-
-        if (body instanceof GenericResponse) {
-            return body;
-        }
-
-        if (body instanceof String s) {
-            return mapper.writeValueAsString(GenericResponse.ok(s));
-        }
-
-        if (body instanceof ResponseEntity<?> re) {
-            HttpStatusCode status = re.getStatusCode();
-            return new GenericResponse<>(status.value(), re.toString(), re.getBody());
-        }
-
-        if (body instanceof BusinessException e) {
-            return GenericResponse.failed(e.getCode(), e.getMessage());
-        }
-
-        if (body instanceof Exception e) {
-            logger.error("An error occurred: ", e);
-            return GenericResponse.error();
-        }
-
-        return GenericResponse.ok(body);
+        return switch (body) {
+            case null -> GenericResponse.ok();
+            case GenericResponse<?> _ -> body;
+            case String s -> mapper.writeValueAsString(GenericResponse.ok(s));
+            case ResponseEntity<?> re -> {
+                HttpStatusCode status = re.getStatusCode();
+                yield new GenericResponse<>(status.value(), re.toString(), re.getBody());
+            }
+            case BusinessException e -> GenericResponse.failed(e.getCode(), e.getMessage());
+            case Exception e -> {
+                logger.error("An error occurred: ", e);
+                yield GenericResponse.error();
+            }
+            default -> GenericResponse.ok(body);
+        };
     }
 
     @ExceptionHandler(value = BusinessException.class)

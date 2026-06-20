@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug backend service",
+            "request": "launch",
+            "mainClass": "win.masteryyh.masteryyhsystem.Application",
+            "projectName": "masteryyh-system",
+            "cwd": "${workspaceFolder}/backend",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "msedge",
+            "name": "Debug frontend service",
+            "request": "launch",
+            "url": "http://127.0.0.1:5173",
+            "webRoot": "${workspaceFolder}/frontend",
+            "preLaunchTask": "Frontend: Vite Dev Server"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Start fullstack",
+            "configurations": [
+                "Debug backend service",
+                "Debug frontend service"
+            ],
+            "stopAll": true
+        }
+    ]
+}

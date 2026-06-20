@@ -1,6 +1,6 @@
 package win.masteryyh.masteryyhsystem.model.dto;
 
-public enum DeployType {
+public enum PlatformType {
     SYSTEMD,
 
     DOCKER,

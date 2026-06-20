@@ -2,17 +2,23 @@ server:
   port: 8080
 
 spring:
+  threads:
+    virtual:
+      enabled: true
   application:
     name: masteryyh-system
   datasource:
-    url: jdbc:postgresql://truenas.internal.masteryyh.win:5432/masteryyh
+    url: jdbc:postgresql://truenas.internal.masteryyh.win:5432/masteryyh_test
     username: postgres
     password: abc123456
   data:
     redis:
-      host: truenas.internal.masteryyh.win
-      port: 6379
-      password: abc123456
+      redisson:
+        file: redisson.yaml
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
 
 management:
   endpoints:
