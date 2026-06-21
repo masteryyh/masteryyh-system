@@ -1,7 +1,15 @@
 import type { ReactNode } from "react";
-import { AlertCircle, ChevronLeft, ChevronRight, LoaderCircle } from "lucide-react";
+import {
+    AlertCircle,
+    CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
+    LoaderCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/use-translation";
+import { useNotify } from "@/hooks/use-notify";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({
@@ -40,6 +48,7 @@ export function InlineMessage({
     children: ReactNode;
     variant?: "error" | "success";
 }) {
+    const Icon = variant === "success" ? CheckCircle2 : AlertCircle;
     return (
         <div
             className={cn(
@@ -49,18 +58,56 @@ export function InlineMessage({
                     : "border-emerald-600/20 bg-emerald-500/8 text-emerald-700",
             )}
         >
-            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <Icon className="mt-0.5 size-4 shrink-0" />
             <span>{children}</span>
         </div>
     );
 }
 
+/**
+ * 把任意捕获到的错误以 inline 形式展示。优先用 i18n key，未匹配时用 fallbackMessage。
+ * 当传入 {@code null}/{@code undefined} 时渲染为 {@code null}，方便条件渲染。
+ */
+export function ErrorBanner({
+    error,
+    fallbackKey,
+}: {
+    error: unknown;
+    fallbackKey?: string;
+}) {
+    const notify = useNotify();
+    const { t } = useTranslation();
+    if (error === null || error === undefined) return null;
+
+    const { messageKey, text } = notify.describe(error);
+    // 当 key 解析失败回退到 messageKey 本身（用户读不懂时）才用 fallbackKey
+    const finalText =
+        text === messageKey && fallbackKey ? t(fallbackKey) : text;
+    return <InlineMessage variant="error">{finalText}</InlineMessage>;
+}
+
+/**
+ * 直接按 i18n key 展示成功 banner；支持插值参数。
+ */
+export function SuccessBanner({
+    messageKey,
+    params,
+}: {
+    messageKey: string;
+    params?: Record<string, string | number>;
+}) {
+    const { t } = useTranslation();
+    if (!messageKey) return null;
+    return <InlineMessage variant="success">{t(messageKey, params)}</InlineMessage>;
+}
+
 export function LoadingState() {
+    const { t } = useTranslation();
     return (
         <div className="grid min-h-56 place-items-center text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
                 <LoaderCircle className="size-4 animate-spin" />
-                正在读取数据
+                {t("common.loadingData")}
             </div>
         </div>
     );
@@ -96,9 +143,12 @@ export function Pagination({
     totalData: number;
     onPageChange: (page: number) => void;
 }) {
+    const { t } = useTranslation();
     return (
         <div className="flex items-center justify-between border-t px-4 py-3 text-sm">
-            <span className="text-muted-foreground">共 {totalData} 条</span>
+            <span className="text-muted-foreground">
+                {t("common.totalRecords", { total: totalData })}
+            </span>
             <div className="flex items-center gap-2">
                 <Button
                     type="button"
@@ -108,7 +158,7 @@ export function Pagination({
                     onClick={() => onPageChange(page - 1)}
                 >
                     <ChevronLeft />
-                    <span className="sr-only">上一页</span>
+                    <span className="sr-only">{t("common.previousPage")}</span>
                 </Button>
                 <span className="min-w-16 text-center font-mono text-xs">
                     {page} / {Math.max(totalPages, 1)}
@@ -121,7 +171,7 @@ export function Pagination({
                     onClick={() => onPageChange(page + 1)}
                 >
                     <ChevronRight />
-                    <span className="sr-only">下一页</span>
+                    <span className="sr-only">{t("common.nextPage")}</span>
                 </Button>
             </div>
         </div>

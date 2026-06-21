@@ -74,39 +74,46 @@ public class CryptoUtils {
     private static boolean isProtected(byte[] content) {
         ByteBuffer buffer = ByteBuffer.wrap(content);
         if (buffer.remaining() < AUTH_MAGIC.length) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
 
         byte[] magic = new byte[AUTH_MAGIC.length];
         buffer.get(magic);
         if (!Arrays.equals(magic, AUTH_MAGIC)) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
 
         String cipherName = readString(buffer);
         if (cipherName == null) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
 
         String kdfName = readString(buffer);
         if (kdfName == null) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
 
         byte[] kdfOptions = readBytes(buffer);
         if (kdfOptions == null) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
 
         if ("none".equals(cipherName)) {
             if (!"none".equals(kdfName) || kdfOptions.length != 0) {
-                throw new BusinessException(400, "Invalid SSH private key format");
+                throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                        "Invalid SSH private key format");
             }
             return false;
         }
 
         if ("none".equals(kdfName)) {
-            throw new BusinessException(400, "Invalid SSH private key format");
+            throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                    "Invalid SSH private key format");
         }
         return true;
     }
@@ -117,7 +124,8 @@ public class CryptoUtils {
             PemObject pemObject = pemReader.readPemObject();
 
             if (pemObject == null || !pemObject.getType().equals("OPENSSH PRIVATE KEY")) {
-                throw new BusinessException(400, "Invalid SSH private key format");
+                throw new BusinessException(400, "error.credential.sshPrivateKey.invalidFormat",
+                        "Invalid SSH private key format");
             }
 
             if (!isProtected(pemObject.getContent())) {
@@ -125,7 +133,8 @@ public class CryptoUtils {
             }
 
             if (StringUtils.isEmpty(passphrase)) {
-                throw new BusinessException(400, "No passphrase provided");
+                throw new BusinessException(400, "error.credential.sshPrivateKey.noPassphrase",
+                        "No passphrase provided");
             }
 
             PasswordFinder passwordFinder =
@@ -137,7 +146,8 @@ public class CryptoUtils {
             try {
                 privateKey = keyFile.getPrivate();
             } catch (Exception e) {
-                throw new BusinessException(400, "Invalid SSH private key or passphrase");
+                throw new BusinessException(400, "error.credential.sshPrivateKey.invalidOrPassphrase",
+                        "Invalid SSH private key or passphrase");
             }
             return PrivateKeyFactory.createKey(privateKey.getEncoded());
         }

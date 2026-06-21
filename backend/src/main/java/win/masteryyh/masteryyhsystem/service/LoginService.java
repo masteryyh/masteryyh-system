@@ -29,7 +29,7 @@ public class LoginService {
             String token = jwtUtils.generateToken(authentication.getName());
             return new LoginResponseDto(authentication.getName(), token);
         } catch (BadCredentialsException exception) {
-            throw new BusinessException(401, "Invalid credential.");
+            throw new BusinessException(401, "error.auth.invalidCredential", "Invalid credential.");
         }
     }
 }

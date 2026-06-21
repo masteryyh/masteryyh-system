@@ -1,0 +1,280 @@
+{
+    "common": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "close": "Close",
+        "delete": "Delete",
+        "confirm": "Confirm",
+        "confirming": "Processing…",
+        "edit": "Edit",
+        "add": "Add",
+        "actions": "Actions",
+        "previousPage": "Previous",
+        "nextPage": "Next",
+        "totalRecords": "{total} item(s)",
+        "loadingData": "Loading…",
+        "yes": "Yes",
+        "no": "No",
+        "dash": "—",
+        "more": "More",
+        "deleting": "Deleting…",
+        "saving": "Saving…"
+    },
+    "app": {
+        "name": "masteryyh's system",
+        "tagline": "Unified control plane for your homelab",
+        "headlineEyebrow": "Homelab control plane",
+        "footerLoading": "Loading version info...",
+        "footerLoadFailed": "Failed to retrieve version info"
+    },
+    "nav": {
+        "home": "Home",
+        "credentials": "Credentials",
+        "platforms": "App Platform",
+        "logout": "Sign out",
+        "console": "Console",
+        "openMenu": "Open menu",
+        "closeMenu": "Close menu"
+    },
+    "login": {
+        "title": "Sign in",
+        "description": "Use the system administrator account to access the console.",
+        "username": "Username",
+        "password": "Password",
+        "usernamePlaceholder": "admin",
+        "passwordPlaceholder": "Enter password",
+        "submit": "Sign in",
+        "submitting": "Signing in…",
+        "missingToken": "Token missing from login response",
+        "tokenMissingFallback": "Sign-in failed, please retry"
+    },
+    "home": {
+        "eyebrow": "Overview",
+        "title": "Welcome back, {username}",
+        "description": "Pick a module from the sidebar, or jump to a frequent destination below.",
+        "cards": {
+            "credentials": {
+                "title": "Credentials",
+                "description": "Keep SSH keys and plain-text secrets in one place for downstream platform connections."
+            },
+            "platforms": {
+                "title": "App Platform",
+                "description": "Register and connect Systemd hosts or Docker daemons under management."
+            }
+        }
+    },
+    "credentials": {
+        "eyebrow": "Secrets",
+        "title": "Credentials",
+        "description": "Store SSH private/public keys and text passwords needed to reach remote hosts.",
+        "addButton": "New credential",
+        "empty": {
+            "title": "No credentials yet",
+            "description": "Click \"New credential\" to add one."
+        },
+        "columns": {
+            "name": "Name",
+            "description": "Description",
+            "type": "Type",
+            "fingerprint": "Public key fingerprint",
+            "updatedAt": "Updated at",
+            "actions": "Actions"
+        },
+        "type": {
+            "SSH_PRIVATE_KEY": "SSH private key",
+            "SSH_PUBLIC_KEY": "SSH public key",
+            "TEXT_PASSWORD": "Text password"
+        },
+        "form": {
+            "createTitle": "New credential",
+            "editTitle": "Edit credential",
+            "createDescription": "Add a new access credential.",
+            "editDescription": "Update name and description. SSH key material and passwords are immutable once created.",
+            "name": "Name",
+            "namePlaceholder": "e.g. homelab-root",
+            "descriptionField": "Description",
+            "descriptionPlaceholder": "Optional, describes the purpose",
+            "credentialType": "Type",
+            "sshPrivateKey": "SSH private key",
+            "sshPrivateKeyPlaceholder": "Starts with -----BEGIN OPENSSH PRIVATE KEY-----",
+            "sshPrivateKeyPassphrase": "Passphrase (optional)",
+            "sshPrivateKeyPassphrasePlaceholder": "If the key is encrypted",
+            "sshPublicKey": "SSH public key",
+            "sshPublicKeyPlaceholder": "e.g. ssh-ed25519 AAAA... user@host",
+            "password": "Password",
+            "passwordPlaceholder": "Enter password",
+            "submitCreate": "Create",
+            "submitEdit": "Save"
+        },
+        "success": {
+            "created": "Credential created",
+            "updated": "Credential updated",
+            "deleted": "Credential deleted"
+        },
+        "deleteDialog": {
+            "title": "Delete credential",
+            "description": "Delete credential \"{name}\"? This cannot be undone.",
+            "confirm": "Delete"
+        },
+        "fallback": {
+            "loadFailed": "Failed to load credentials",
+            "saveFailed": "Failed to save credential",
+            "deleteFailed": "Failed to delete credential"
+        }
+    },
+    "platforms": {
+        "eyebrow": "Targets",
+        "title": "App Platform",
+        "description": "Register and connect Systemd hosts or Docker platforms under management.",
+        "addButton": "New platform",
+        "empty": {
+            "title": "No platforms yet",
+            "description": "Click \"New platform\" to add one."
+        },
+        "columns": {
+            "name": "Name",
+            "description": "Description",
+            "type": "Type",
+            "address": "Address",
+            "credential": "Credential",
+            "status": "Status",
+            "updatedAt": "Updated at",
+            "actions": "Actions"
+        },
+        "type": {
+            "SYSTEMD": "Systemd host",
+            "DOCKER": "Docker host"
+        },
+        "status": {
+            "online": "Online",
+            "offline": "Offline"
+        },
+        "form": {
+            "createTitle": "New App Platform",
+            "editTitle": "Edit App Platform",
+            "createDescription": "Register a new managed target.",
+            "editDescription": "Update connection settings.",
+            "name": "Name",
+            "namePlaceholder": "e.g. truenas-main",
+            "descriptionField": "Description",
+            "descriptionPlaceholder": "Optional, describes the purpose",
+            "platformType": "Type",
+            "dockerHost": "Docker host",
+            "dockerHostPlaceholder": "tcp://host:2375",
+            "sshHost": "SSH host",
+            "sshHostPlaceholder": "e.g. truenas.internal",
+            "sshPort": "SSH port",
+            "sshUsername": "SSH username",
+            "sshUsernamePlaceholder": "e.g. root",
+            "credential": "Credential",
+            "credentialNone": "(No credential)",
+            "hostKeys": "Known host keys",
+            "hostKeysPlaceholder": "One host key per line; leave empty to learn on first connect",
+            "submitCreate": "Create",
+            "submitEdit": "Save"
+        },
+        "success": {
+            "created": "Platform created",
+            "updated": "Platform updated",
+            "deleted": "Platform deleted"
+        },
+        "deleteDialog": {
+            "title": "Delete platform",
+            "description": "Delete platform \"{name}\"? This cannot be undone.",
+            "confirm": "Delete"
+        },
+        "fallback": {
+            "loadFailed": "Failed to load platforms",
+            "saveFailed": "Failed to save platform",
+            "deleteFailed": "Failed to delete platform"
+        }
+    },
+    "fingerprint": {
+        "tooltipCopyHint": "Click to copy full fingerprint",
+        "tooltipCopied": "Copied to clipboard",
+        "copyFailed": "Copy failed, please select and copy manually",
+        "ariaCopy": "Copy fingerprint {fingerprint}",
+        "ariaCopied": "Fingerprint copied to clipboard"
+    },
+    "error": {
+        "unknown": "Something went wrong. Please retry later.",
+        "network": "Cannot reach the server. Check your network and retry.",
+        "unauthorized": "Session expired. Please sign in again.",
+        "envelopeMalformed": "Server response shape is invalid.",
+        "parameterValidation": "Request parameters failed validation.",
+        "boundary": {
+            "title": "Something broke",
+            "description": "The page hit an unhandled error while rendering. Please refresh.",
+            "retry": "Refresh"
+        },
+        "auth": {
+            "invalidCredential": "Wrong username or password"
+        },
+        "credential": {
+            "notFound": "Credential not found",
+            "alreadyExists": "Credential already exists",
+            "nameAlreadyExists": "Credential name already taken",
+            "occupied": "Credential is referenced by a platform; detach it first",
+            "sshPublicKey": {
+                "empty": "SSH public key cannot be empty",
+                "invalid": "SSH public key is not valid"
+            },
+            "sshPrivateKey": {
+                "empty": "SSH private key cannot be empty",
+                "invalid": "SSH private key is not valid",
+                "invalidFormat": "SSH private key format is invalid",
+                "noPassphrase": "Encrypted private key requires a passphrase",
+                "invalidOrPassphrase": "SSH private key or passphrase is wrong"
+            },
+            "password": {
+                "empty": "Password cannot be empty"
+            }
+        },
+        "platform": {
+            "notFound": "Platform not found",
+            "alreadyExists": "Platform name already taken",
+            "credentialNotFound": "Selected credential does not exist",
+            "unknownType": "Unknown platform type",
+            "unknownId": "Unknown platform id",
+            "dockerHost": {
+                "empty": "Docker host cannot be empty"
+            },
+            "sshHost": {
+                "empty": "SSH host cannot be empty"
+            },
+            "sshUsername": {
+                "empty": "SSH username cannot be empty"
+            }
+        }
+    },
+    "validation": {
+        "credential": {
+            "name": {
+                "notBlank": "Credential name cannot be blank"
+            },
+            "type": {
+                "notNull": "Please choose a credential type"
+            }
+        },
+        "platform": {
+            "name": {
+                "notBlank": "Platform name cannot be blank"
+            },
+            "type": {
+                "notNull": "Please choose a platform type"
+            },
+            "sshPort": {
+                "min": "SSH port must be at least 1",
+                "max": "SSH port cannot exceed 65535"
+            }
+        },
+        "username": {
+            "notBlank": "Username cannot be blank",
+            "length": "Username length must be 1-32 chars"
+        },
+        "password": {
+            "notEmpty": "Password cannot be empty",
+            "length": "Password must be at least 6 chars"
+        }
+    }
+}

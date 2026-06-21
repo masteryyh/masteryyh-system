@@ -6,14 +6,14 @@ import {
     type ReactNode,
 } from "react";
 import { KeyRound, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router";
 
 import {
     EmptyState,
-    InlineMessage,
+    ErrorBanner,
     LoadingState,
     PageHeader,
     Pagination,
+    SuccessBanner,
 } from "@/components/resource-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,9 +32,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSession } from "@/hooks/use-session";
-import { apiRequest, requirePagedResponse, toQuery } from "@/lib/api";
-import { formatDate, formatFingerprint } from "@/lib/formatters";
+import { useApi } from "@/hooks/use-api";
+import { useNotify } from "@/hooks/use-notify";
+import { useTranslation } from "@/hooks/use-translation";
+import { formatDate } from "@/lib/formatters";
+import { FingerprintBadge } from "@/features/credentials/fingerprint-badge";
 import type {
     AddCredentialRequest,
     Credential,
@@ -49,11 +51,11 @@ const controlClass =
 const textAreaClass =
     "min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm outline-none placeholder:font-sans focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
-const credentialTypeLabels: Record<CredentialType, string> = {
-    SSH_PRIVATE_KEY: "SSH 私钥",
-    SSH_PUBLIC_KEY: "SSH 公钥",
-    TEXT_PASSWORD: "文本密码",
-};
+const credentialTypes: CredentialType[] = [
+    "SSH_PRIVATE_KEY",
+    "SSH_PUBLIC_KEY",
+    "TEXT_PASSWORD",
+];
 
 interface CredentialFormState {
     name: string;
@@ -76,56 +78,41 @@ const emptyForm: CredentialFormState = {
 };
 
 export function CredentialsPage() {
-    const { session, logout } = useSession();
-    const navigate = useNavigate();
-    const token = session?.token ?? "";
-
-    const onUnauthorized = useCallback(() => {
-        logout();
-        navigate("/login", { replace: true });
-    }, [logout, navigate]);
+    const api = useApi();
+    const notify = useNotify();
+    const { t } = useTranslation();
 
     const [page, setPage] = useState(1);
     const [result, setResult] = useState<PagedResponse<Credential> | null>(
         null,
     );
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [loadError, setLoadError] = useState<unknown>(null);
+    const [successKey, setSuccessKey] = useState("");
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<Credential | null>(null);
     const [form, setForm] = useState<CredentialFormState>(emptyForm);
-    const [formError, setFormError] = useState("");
+    const [formError, setFormError] = useState<unknown>(null);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState<Credential | null>(null);
-
-    const context = { token, onUnauthorized };
+    const [deleteError, setDeleteError] = useState<unknown>(null);
 
     const loadCredentials = useCallback(async () => {
         setLoading(true);
-        setError("");
+        setLoadError(null);
         try {
-            const payload = await apiRequest<unknown>(
-                `/v1/credentials/list?${toQuery({ page, pageSize })}`,
-                {},
-                { token, onUnauthorized },
-            );
-            const data = requirePagedResponse<Credential>(payload, "凭据");
+            const data = await api.credentials.list({ page, pageSize });
             setResult(data);
             if (data.totalPages > 0 && page > data.totalPages) {
                 setPage(data.totalPages);
             }
-        } catch (loadError) {
+        } catch (error) {
             setResult(null);
-            setError(
-                loadError instanceof Error
-                    ? loadError.message
-                    : "凭据列表加载失败",
-            );
+            setLoadError(error);
         } finally {
             setLoading(false);
         }
-    }, [onUnauthorized, page, token]);
+    }, [api.credentials, page]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => void loadCredentials(), 0);
@@ -135,7 +122,7 @@ export function CredentialsPage() {
     function openCreate() {
         setEditing(null);
         setForm(emptyForm);
-        setFormError("");
+        setFormError(null);
         setFormOpen(true);
     }
 
@@ -147,7 +134,7 @@ export function CredentialsPage() {
             description: credential.description ?? "",
             credentialType: credential.credentialType,
         });
-        setFormError("");
+        setFormError(null);
         setFormOpen(true);
     }
 
@@ -161,7 +148,7 @@ export function CredentialsPage() {
     async function saveCredential(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setSaving(true);
-        setFormError("");
+        setFormError(null);
 
         try {
             if (editing) {
@@ -169,12 +156,9 @@ export function CredentialsPage() {
                     name: form.name.trim(),
                     description: form.description.trim(),
                 };
-                await apiRequest<void>(
-                    `/v1/credentials/update/${editing.id}`,
-                    { method: "PUT", body: JSON.stringify(body) },
-                    context,
-                );
-                setSuccess("凭据已更新");
+                await api.credentials.update(editing.id, body);
+                setSuccessKey("credentials.success.updated");
+                notify.success("credentials.success.updated");
             } else {
                 const body: AddCredentialRequest = {
                     name: form.name.trim(),
@@ -190,22 +174,15 @@ export function CredentialsPage() {
                 } else {
                     body.password = form.password;
                 }
-                await apiRequest<void>(
-                    "/v1/credentials/add",
-                    { method: "POST", body: JSON.stringify(body) },
-                    context,
-                );
-                setSuccess("凭据已创建");
+                await api.credentials.create(body);
+                setSuccessKey("credentials.success.created");
+                notify.success("credentials.success.created");
                 setPage(1);
             }
             setFormOpen(false);
             await loadCredentials();
         } catch (saveError) {
-            setFormError(
-                saveError instanceof Error
-                    ? saveError.message
-                    : "凭据保存失败",
-            );
+            setFormError(saveError);
         } finally {
             setSaving(false);
         }
@@ -214,22 +191,15 @@ export function CredentialsPage() {
     async function deleteCredential() {
         if (!deleting) return;
         setSaving(true);
-        setFormError("");
+        setDeleteError(null);
         try {
-            await apiRequest<void>(
-                `/v1/credentials/delete/${deleting.id}`,
-                { method: "DELETE" },
-                context,
-            );
+            await api.credentials.remove(deleting.id);
             setDeleting(null);
-            setSuccess("凭据已删除");
+            setSuccessKey("credentials.success.deleted");
+            notify.success("credentials.success.deleted");
             await loadCredentials();
-        } catch (deleteError) {
-            setFormError(
-                deleteError instanceof Error
-                    ? deleteError.message
-                    : "凭据删除失败",
-            );
+        } catch (error) {
+            setDeleteError(error);
         } finally {
             setSaving(false);
         }
@@ -238,40 +208,51 @@ export function CredentialsPage() {
     return (
         <div className="space-y-6">
             <PageHeader
-                eyebrow="Access material"
-                title="凭证管理"
-                description="集中管理主机登录所需的密钥与密码。敏感内容只在创建时提交，保存后不再回显。"
+                eyebrow={t("credentials.eyebrow")}
+                title={t("credentials.title")}
+                description={t("credentials.description")}
                 action={
                     <Button onClick={openCreate}>
                         <Plus />
-                        新增凭据
+                        {t("credentials.addButton")}
                     </Button>
                 }
             />
 
-            {success ? (
-                <InlineMessage variant="success">{success}</InlineMessage>
-            ) : null}
-            {error ? <InlineMessage>{error}</InlineMessage> : null}
+            {successKey ? <SuccessBanner messageKey={successKey} /> : null}
+            <ErrorBanner
+                error={loadError}
+                fallbackKey="credentials.fallback.loadFailed"
+            />
 
             <section className="w-full max-w-full overflow-hidden rounded-xl border bg-card shadow-sm">
                 {loading ? (
                     <LoadingState />
                 ) : !result?.data.length ? (
                     <EmptyState
-                        title="还没有凭据"
-                        description="先添加用于 SYSTEMD 主机认证的 SSH 私钥或文本密码。"
+                        title={t("credentials.empty.title")}
+                        description={t("credentials.empty.description")}
                     />
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[880px] text-left text-sm">
                             <thead className="border-b bg-muted/45 text-xs text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">名称</th>
-                                    <th className="px-4 py-3 font-medium">类型</th>
-                                    <th className="px-4 py-3 font-medium">算法信息</th>
-                                    <th className="px-4 py-3 font-medium">公钥指纹</th>
-                                    <th className="px-4 py-3 font-medium">更新时间</th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.name")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.type")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.description")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.fingerprint")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.updatedAt")}
+                                    </th>
                                     <th className="w-12 px-4 py-3" />
                                 </tr>
                             </thead>
@@ -282,7 +263,7 @@ export function CredentialsPage() {
                                         credential={credential}
                                         onEdit={() => openEdit(credential)}
                                         onDelete={() => {
-                                            setFormError("");
+                                            setDeleteError(null);
                                             setDeleting(credential);
                                         }}
                                     />
@@ -306,29 +287,43 @@ export function CredentialsPage() {
                     <form onSubmit={saveCredential} className="space-y-5">
                         <DialogHeader>
                             <DialogTitle>
-                                {editing ? "编辑凭据" : "新增凭据"}
+                                {editing
+                                    ? t("credentials.form.editTitle")
+                                    : t("credentials.form.createTitle")}
                             </DialogTitle>
                             <DialogDescription>
                                 {editing
-                                    ? "凭据类型和敏感内容不可修改。"
-                                    : "选择凭据类型后填写对应的认证内容。"}
+                                    ? t("credentials.form.editDescription")
+                                    : t("credentials.form.createDescription")}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="grid gap-4">
-                            <Field label="名称" htmlFor="credential-name">
+                            <Field
+                                label={t("credentials.form.name")}
+                                htmlFor="credential-name"
+                            >
                                 <Input
                                     id="credential-name"
                                     required
+                                    placeholder={t(
+                                        "credentials.form.namePlaceholder",
+                                    )}
                                     value={form.name}
                                     onChange={(event) =>
                                         updateForm("name", event.target.value)
                                     }
                                 />
                             </Field>
-                            <Field label="描述" htmlFor="credential-description">
+                            <Field
+                                label={t("credentials.form.descriptionField")}
+                                htmlFor="credential-description"
+                            >
                                 <Input
                                     id="credential-description"
+                                    placeholder={t(
+                                        "credentials.form.descriptionPlaceholder",
+                                    )}
                                     value={form.description}
                                     onChange={(event) =>
                                         updateForm(
@@ -338,7 +333,10 @@ export function CredentialsPage() {
                                     }
                                 />
                             </Field>
-                            <Field label="类型" htmlFor="credential-type">
+                            <Field
+                                label={t("credentials.form.credentialType")}
+                                htmlFor="credential-type"
+                            >
                                 <select
                                     id="credential-type"
                                     className={controlClass}
@@ -351,13 +349,11 @@ export function CredentialsPage() {
                                         )
                                     }
                                 >
-                                    {Object.entries(credentialTypeLabels).map(
-                                        ([value, label]) => (
-                                            <option key={value} value={value}>
-                                                {label}
-                                            </option>
-                                        ),
-                                    )}
+                                    {credentialTypes.map((value) => (
+                                        <option key={value} value={value}>
+                                            {t(`credentials.type.${value}`)}
+                                        </option>
+                                    ))}
                                 </select>
                             </Field>
 
@@ -365,7 +361,9 @@ export function CredentialsPage() {
                             form.credentialType === "SSH_PRIVATE_KEY" ? (
                                 <>
                                     <Field
-                                        label="SSH 私钥"
+                                        label={t(
+                                            "credentials.form.sshPrivateKey",
+                                        )}
                                         htmlFor="ssh-private-key"
                                     >
                                         <textarea
@@ -373,7 +371,9 @@ export function CredentialsPage() {
                                             className={textAreaClass}
                                             required
                                             spellCheck={false}
-                                            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+                                            placeholder={t(
+                                                "credentials.form.sshPrivateKeyPlaceholder",
+                                            )}
                                             value={form.sshPrivateKey}
                                             onChange={(event) =>
                                                 updateForm(
@@ -384,12 +384,17 @@ export function CredentialsPage() {
                                         />
                                     </Field>
                                     <Field
-                                        label="私钥口令（可选）"
+                                        label={t(
+                                            "credentials.form.sshPrivateKeyPassphrase",
+                                        )}
                                         htmlFor="ssh-passphrase"
                                     >
                                         <Input
                                             id="ssh-passphrase"
                                             type="password"
+                                            placeholder={t(
+                                                "credentials.form.sshPrivateKeyPassphrasePlaceholder",
+                                            )}
                                             value={form.sshPrivateKeyPassphrase}
                                             onChange={(event) =>
                                                 updateForm(
@@ -405,7 +410,7 @@ export function CredentialsPage() {
                             {!editing &&
                             form.credentialType === "SSH_PUBLIC_KEY" ? (
                                 <Field
-                                    label="SSH 公钥"
+                                    label={t("credentials.form.sshPublicKey")}
                                     htmlFor="ssh-public-key"
                                 >
                                     <textarea
@@ -413,7 +418,9 @@ export function CredentialsPage() {
                                         className={textAreaClass}
                                         required
                                         spellCheck={false}
-                                        placeholder="ssh-ed25519 AAAA..."
+                                        placeholder={t(
+                                            "credentials.form.sshPublicKeyPlaceholder",
+                                        )}
                                         value={form.sshPublicKey}
                                         onChange={(event) =>
                                             updateForm(
@@ -427,11 +434,17 @@ export function CredentialsPage() {
 
                             {!editing &&
                             form.credentialType === "TEXT_PASSWORD" ? (
-                                <Field label="密码" htmlFor="text-password">
+                                <Field
+                                    label={t("credentials.form.password")}
+                                    htmlFor="text-password"
+                                >
                                     <Input
                                         id="text-password"
                                         type="password"
                                         required
+                                        placeholder={t(
+                                            "credentials.form.passwordPlaceholder",
+                                        )}
                                         value={form.password}
                                         onChange={(event) =>
                                             updateForm(
@@ -444,19 +457,24 @@ export function CredentialsPage() {
                             ) : null}
                         </div>
 
-                        {formError ? (
-                            <InlineMessage>{formError}</InlineMessage>
-                        ) : null}
+                        <ErrorBanner
+                            error={formError}
+                            fallbackKey="credentials.fallback.saveFailed"
+                        />
                         <DialogFooter>
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => setFormOpen(false)}
                             >
-                                取消
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={saving}>
-                                {saving ? "保存中..." : "保存凭据"}
+                                {saving
+                                    ? t("common.saving")
+                                    : editing
+                                      ? t("credentials.form.submitEdit")
+                                      : t("credentials.form.submitCreate")}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -471,21 +489,26 @@ export function CredentialsPage() {
             >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>删除凭据</DialogTitle>
+                        <DialogTitle>
+                            {t("credentials.deleteDialog.title")}
+                        </DialogTitle>
                         <DialogDescription>
-                            将删除“{deleting?.name}”。已被平台使用的凭据无法删除。
+                            {t("credentials.deleteDialog.description", {
+                                name: deleting?.name ?? "",
+                            })}
                         </DialogDescription>
                     </DialogHeader>
-                    {formError ? (
-                        <InlineMessage>{formError}</InlineMessage>
-                    ) : null}
+                    <ErrorBanner
+                        error={deleteError}
+                        fallbackKey="credentials.fallback.deleteFailed"
+                    />
                     <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setDeleting(null)}
                         >
-                            取消
+                            {t("common.cancel")}
                         </Button>
                         <Button
                             type="button"
@@ -493,7 +516,9 @@ export function CredentialsPage() {
                             disabled={saving}
                             onClick={() => void deleteCredential()}
                         >
-                            {saving ? "删除中..." : "确认删除"}
+                            {saving
+                                ? t("common.deleting")
+                                : t("credentials.deleteDialog.confirm")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -511,6 +536,7 @@ function CredentialRow({
     onEdit: () => void;
     onDelete: () => void;
 }) {
+    const { t } = useTranslation();
     const keyInfo = credential.sshKeyInfo;
     return (
         <tr className="transition-colors hover:bg-muted/25">
@@ -521,44 +547,33 @@ function CredentialRow({
                     </span>
                     <div className="min-w-0">
                         <p className="font-medium">{credential.name}</p>
-                        <p className="max-w-52 truncate text-xs text-muted-foreground">
-                            {credential.description || "无描述"}
-                        </p>
                     </div>
                 </div>
             </td>
             <td className="px-4 py-3">
                 <span className="whitespace-nowrap rounded-md border bg-muted/35 px-2 py-1 text-xs">
-                    {credentialTypeLabels[credential.credentialType]}
+                    {t(`credentials.type.${credential.credentialType}`)}
                 </span>
             </td>
-            <td className="px-4 py-3">
-                {keyInfo ? (
-                    <div className="text-xs">
-                        <p className="font-mono font-medium">
-                            {keyInfo.keyType}
-                            {keyInfo.bitLength > 0
-                                ? ` · ${keyInfo.bitLength} bit`
-                                : ""}
-                        </p>
-                        <p className="mt-1 text-muted-foreground">
-                            {keyInfo.curveName || "非椭圆曲线密钥"}
-                        </p>
-                    </div>
-                ) : (
-                    <span className="text-xs text-muted-foreground">不适用</span>
-                )}
+            <td className="px-4 py-3 text-xs text-muted-foreground">
+                <p className="max-w-72 truncate">
+                    {credential.description ||
+                        (keyInfo
+                            ? `${keyInfo.keyType}${
+                                  keyInfo.bitLength > 0
+                                      ? ` · ${keyInfo.bitLength} bit`
+                                      : ""
+                              }`
+                            : t("common.dash"))}
+                </p>
             </td>
             <td className="px-4 py-3">
                 {keyInfo ? (
-                    <code
-                        className="block max-w-64 truncate rounded-md bg-slate-950 px-2 py-1.5 font-mono text-[0.7rem] text-slate-100"
-                        title={formatFingerprint(keyInfo.fingerprint)}
-                    >
-                        {formatFingerprint(keyInfo.fingerprint)}
-                    </code>
+                    <FingerprintBadge fingerprint={keyInfo.fingerprint} />
                 ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="text-xs text-muted-foreground">
+                        {t("common.dash")}
+                    </span>
                 )}
             </td>
             <td className="px-4 py-3 text-xs text-muted-foreground">
@@ -569,17 +584,22 @@ function CredentialRow({
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-sm">
                             <MoreHorizontal />
-                            <span className="sr-only">凭据操作</span>
+                            <span className="sr-only">
+                                {t("common.actions")}
+                            </span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem onClick={onEdit}>
                             <Pencil />
-                            编辑
+                            {t("common.edit")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={onDelete}
+                        >
                             <Trash2 />
-                            删除
+                            {t("common.delete")}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

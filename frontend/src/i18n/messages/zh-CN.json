@@ -1,0 +1,280 @@
+{
+    "common": {
+        "save": "保存",
+        "cancel": "取消",
+        "close": "关闭",
+        "delete": "删除",
+        "confirm": "确认",
+        "confirming": "处理中…",
+        "edit": "编辑",
+        "add": "新增",
+        "actions": "操作",
+        "previousPage": "上一页",
+        "nextPage": "下一页",
+        "totalRecords": "共 {total} 条",
+        "loadingData": "正在读取数据",
+        "yes": "是",
+        "no": "否",
+        "dash": "—",
+        "more": "更多",
+        "deleting": "删除中…",
+        "saving": "保存中…"
+    },
+    "app": {
+        "name": "masteryyh's system",
+        "tagline": "Homelab 统一控制和管理平面",
+        "headlineEyebrow": "Homelab control plane",
+        "footerLoading": "Loading version info...",
+        "footerLoadFailed": "Failed to retrieve version info"
+    },
+    "nav": {
+        "home": "首页",
+        "credentials": "凭据",
+        "platforms": "App Platform",
+        "logout": "退出登录",
+        "console": "控制台",
+        "openMenu": "打开菜单",
+        "closeMenu": "关闭菜单"
+    },
+    "login": {
+        "title": "登录",
+        "description": "使用系统管理员账号进入控制台。",
+        "username": "用户名",
+        "password": "密码",
+        "usernamePlaceholder": "admin",
+        "passwordPlaceholder": "请输入密码",
+        "submit": "登录",
+        "submitting": "登录中…",
+        "missingToken": "登录响应中缺少 token",
+        "tokenMissingFallback": "登录失败，请稍后重试"
+    },
+    "home": {
+        "eyebrow": "Overview",
+        "title": "欢迎回来，{username}",
+        "description": "选择左侧导航中的模块开始使用，或直接进入下方常用入口。",
+        "cards": {
+            "credentials": {
+                "title": "凭据管理",
+                "description": "集中保管 SSH 私钥、公钥与文本口令，给后续平台连接使用。"
+            },
+            "platforms": {
+                "title": "App Platform",
+                "description": "登记并连接被纳管的主机或 Docker 平台。"
+            }
+        }
+    },
+    "credentials": {
+        "eyebrow": "Secrets",
+        "title": "凭据管理",
+        "description": "集中保管访问远程主机所需的 SSH 私钥、公钥与文本口令。",
+        "addButton": "新增凭据",
+        "empty": {
+            "title": "尚未配置凭据",
+            "description": "点击右上角「新增凭据」开始添加。"
+        },
+        "columns": {
+            "name": "名称",
+            "description": "描述",
+            "type": "类型",
+            "fingerprint": "公钥指纹",
+            "updatedAt": "更新时间",
+            "actions": "操作"
+        },
+        "type": {
+            "SSH_PRIVATE_KEY": "SSH 私钥",
+            "SSH_PUBLIC_KEY": "SSH 公钥",
+            "TEXT_PASSWORD": "文本密码"
+        },
+        "form": {
+            "createTitle": "新增凭据",
+            "editTitle": "编辑凭据",
+            "createDescription": "添加一条新的访问凭据。",
+            "editDescription": "更新该凭据的名称和描述。SSH 密钥与口令一旦创建不可修改。",
+            "name": "名称",
+            "namePlaceholder": "如：homelab-root",
+            "descriptionField": "描述",
+            "descriptionPlaceholder": "可选，用于标识此凭据用途",
+            "credentialType": "凭据类型",
+            "sshPrivateKey": "SSH 私钥",
+            "sshPrivateKeyPlaceholder": "以 -----BEGIN OPENSSH PRIVATE KEY----- 开头",
+            "sshPrivateKeyPassphrase": "Passphrase（可选）",
+            "sshPrivateKeyPassphrasePlaceholder": "若私钥已加密，请填写",
+            "sshPublicKey": "SSH 公钥",
+            "sshPublicKeyPlaceholder": "如：ssh-ed25519 AAAA... user@host",
+            "password": "口令",
+            "passwordPlaceholder": "请输入文本口令",
+            "submitCreate": "创建",
+            "submitEdit": "保存"
+        },
+        "success": {
+            "created": "凭据已创建",
+            "updated": "凭据已更新",
+            "deleted": "凭据已删除"
+        },
+        "deleteDialog": {
+            "title": "删除凭据",
+            "description": "确定要删除凭据「{name}」吗？该操作不可撤销。",
+            "confirm": "删除"
+        },
+        "fallback": {
+            "loadFailed": "凭据列表加载失败",
+            "saveFailed": "凭据保存失败",
+            "deleteFailed": "凭据删除失败"
+        }
+    },
+    "platforms": {
+        "eyebrow": "Targets",
+        "title": "App Platform",
+        "description": "登记并连接被纳管的主机或 Docker 平台。",
+        "addButton": "新增平台",
+        "empty": {
+            "title": "尚未登记任何平台",
+            "description": "点击右上角「新增平台」开始添加。"
+        },
+        "columns": {
+            "name": "名称",
+            "description": "描述",
+            "type": "类型",
+            "address": "连接地址",
+            "credential": "凭据",
+            "status": "状态",
+            "updatedAt": "更新时间",
+            "actions": "操作"
+        },
+        "type": {
+            "SYSTEMD": "Systemd 主机",
+            "DOCKER": "Docker 平台"
+        },
+        "status": {
+            "online": "在线",
+            "offline": "离线"
+        },
+        "form": {
+            "createTitle": "新增 App Platform",
+            "editTitle": "编辑 App Platform",
+            "createDescription": "添加一个新的纳管目标。",
+            "editDescription": "更新该平台的连接信息。",
+            "name": "名称",
+            "namePlaceholder": "如：truenas-main",
+            "descriptionField": "描述",
+            "descriptionPlaceholder": "可选，描述此平台用途",
+            "platformType": "类型",
+            "dockerHost": "Docker host",
+            "dockerHostPlaceholder": "tcp://host:2375",
+            "sshHost": "SSH 主机",
+            "sshHostPlaceholder": "如：truenas.internal",
+            "sshPort": "SSH 端口",
+            "sshUsername": "SSH 用户名",
+            "sshUsernamePlaceholder": "如：root",
+            "credential": "凭据",
+            "credentialNone": "（不绑定凭据）",
+            "hostKeys": "已知 host keys",
+            "hostKeysPlaceholder": "每行一条 host key，可留空让首次连接时自动学习",
+            "submitCreate": "创建",
+            "submitEdit": "保存"
+        },
+        "success": {
+            "created": "平台已创建",
+            "updated": "平台已更新",
+            "deleted": "平台已删除"
+        },
+        "deleteDialog": {
+            "title": "删除平台",
+            "description": "确定要删除平台「{name}」吗？该操作不可撤销。",
+            "confirm": "删除"
+        },
+        "fallback": {
+            "loadFailed": "平台列表加载失败",
+            "saveFailed": "平台保存失败",
+            "deleteFailed": "平台删除失败"
+        }
+    },
+    "fingerprint": {
+        "tooltipCopyHint": "点击复制完整指纹",
+        "tooltipCopied": "已复制到剪贴板",
+        "copyFailed": "复制失败，请手动选择并复制",
+        "ariaCopy": "复制指纹 {fingerprint}",
+        "ariaCopied": "指纹已复制到剪贴板"
+    },
+    "error": {
+        "unknown": "发生未知错误，请稍后重试",
+        "network": "无法连接到服务器，请检查网络后重试",
+        "unauthorized": "登录状态已失效，请重新登录",
+        "envelopeMalformed": "服务器响应格式异常",
+        "parameterValidation": "请求参数校验失败",
+        "boundary": {
+            "title": "页面出错了",
+            "description": "组件渲染时发生错误，请刷新重试。",
+            "retry": "刷新页面"
+        },
+        "auth": {
+            "invalidCredential": "用户名或密码错误"
+        },
+        "credential": {
+            "notFound": "凭据不存在",
+            "alreadyExists": "凭据已存在",
+            "nameAlreadyExists": "凭据名称已被占用",
+            "occupied": "凭据已被平台引用，请先解除引用",
+            "sshPublicKey": {
+                "empty": "SSH 公钥不能为空",
+                "invalid": "SSH 公钥格式无效"
+            },
+            "sshPrivateKey": {
+                "empty": "SSH 私钥不能为空",
+                "invalid": "SSH 私钥格式无效",
+                "invalidFormat": "SSH 私钥格式无效",
+                "noPassphrase": "该 SSH 私钥已加密，请提供 passphrase",
+                "invalidOrPassphrase": "SSH 私钥或 passphrase 不正确"
+            },
+            "password": {
+                "empty": "密码不能为空"
+            }
+        },
+        "platform": {
+            "notFound": "平台不存在",
+            "alreadyExists": "平台名称已被占用",
+            "credentialNotFound": "所选凭据不存在",
+            "unknownType": "未知的平台类型",
+            "unknownId": "未知的平台 ID",
+            "dockerHost": {
+                "empty": "Docker 主机地址不能为空"
+            },
+            "sshHost": {
+                "empty": "SSH 主机地址不能为空"
+            },
+            "sshUsername": {
+                "empty": "SSH 用户名不能为空"
+            }
+        }
+    },
+    "validation": {
+        "credential": {
+            "name": {
+                "notBlank": "凭据名称不能为空"
+            },
+            "type": {
+                "notNull": "请选择凭据类型"
+            }
+        },
+        "platform": {
+            "name": {
+                "notBlank": "平台名称不能为空"
+            },
+            "type": {
+                "notNull": "请选择平台类型"
+            },
+            "sshPort": {
+                "min": "SSH 端口不能小于 1",
+                "max": "SSH 端口不能大于 65535"
+            }
+        },
+        "username": {
+            "notBlank": "用户名不能为空",
+            "length": "用户名长度应在 1-32 之间"
+        },
+        "password": {
+            "notEmpty": "密码不能为空",
+            "length": "密码至少 6 位"
+        }
+    }
+}

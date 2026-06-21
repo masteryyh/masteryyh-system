@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.UUID;
 
-public record UpdateAppPlatformDto(@NotBlank(message = "Name cannot be blank") String name,
+public record UpdateAppPlatformDto(@NotBlank(message = "validation.platform.name.notBlank") String name,
                                    String description,
                                    String dockerHost,
                                    String systemdSSHHost,

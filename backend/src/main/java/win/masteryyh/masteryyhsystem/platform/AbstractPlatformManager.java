@@ -150,7 +150,7 @@ public abstract class AbstractPlatformManager<C> {
     public Optional<C> getClient(UUID id) {
         Connection<C> conn = connections.get(id);
         if (conn == null) {
-            throw new BusinessException(404, "Unknown platform id " + id);
+            throw new BusinessException(404, "error.platform.unknownId", "Unknown platform id " + id);
         }
         if (!conn.healthy || conn.client == null) {
             return Optional.empty();

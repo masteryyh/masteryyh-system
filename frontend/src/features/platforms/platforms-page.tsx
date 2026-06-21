@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
+import {
+    useCallback,
+    useEffect,
+    useState,
+    type FormEvent,
+    type ReactNode,
+} from "react";
 import {
     Container,
     MoreHorizontal,
@@ -7,14 +13,14 @@ import {
     Server,
     Trash2,
 } from "lucide-react";
-import { useNavigate } from "react-router";
 
 import {
     EmptyState,
-    InlineMessage,
+    ErrorBanner,
     LoadingState,
     PageHeader,
     Pagination,
+    SuccessBanner,
 } from "@/components/resource-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,9 +39,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSession } from "@/hooks/use-session";
-import { apiRequest, requirePagedResponse, toQuery } from "@/lib/api";
-import { formatDate, formatFingerprint } from "@/lib/formatters";
+import { FingerprintBadge } from "@/features/credentials/fingerprint-badge";
+import { useApi } from "@/hooks/use-api";
+import { useNotify } from "@/hooks/use-notify";
+import { useTranslation } from "@/hooks/use-translation";
+import { formatDate } from "@/lib/formatters";
 import type {
     AppPlatform,
     AppPlatformRequest,
@@ -76,14 +84,9 @@ const emptyForm: PlatformFormState = {
 };
 
 export function PlatformsPage() {
-    const { session, logout } = useSession();
-    const navigate = useNavigate();
-    const token = session?.token ?? "";
-
-    const onUnauthorized = useCallback(() => {
-        logout();
-        navigate("/login", { replace: true });
-    }, [logout, navigate]);
+    const api = useApi();
+    const notify = useNotify();
+    const { t } = useTranslation();
 
     const [page, setPage] = useState(1);
     const [result, setResult] = useState<PagedResponse<AppPlatform> | null>(
@@ -94,48 +97,36 @@ export function PlatformsPage() {
         Record<string, Credential>
     >({});
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+    const [loadError, setLoadError] = useState<unknown>(null);
+    const [successKey, setSuccessKey] = useState("");
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<AppPlatform | null>(null);
     const [form, setForm] = useState<PlatformFormState>(emptyForm);
-    const [formError, setFormError] = useState("");
+    const [formError, setFormError] = useState<unknown>(null);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState<AppPlatform | null>(null);
-
-    const context = { token, onUnauthorized };
+    const [deleteError, setDeleteError] = useState<unknown>(null);
 
     const loadPlatforms = useCallback(async () => {
         setLoading(true);
-        setError("");
+        setLoadError(null);
         try {
-            const [platformPayload, credentialPayload] = await Promise.all([
-                apiRequest<unknown>(
-                    `/v1/platforms/list?${toQuery({ page, pageSize })}`,
-                    {},
-                    { token, onUnauthorized },
-                ),
-                apiRequest<unknown>(
-                    `/v1/credentials/list?${toQuery({ page: 1, pageSize: credentialPageSize })}`,
-                    {},
-                    { token, onUnauthorized },
-                ),
+            const [platformData, credentialData] = await Promise.all([
+                api.platforms.list({ page, pageSize }),
+                api.credentials.list({
+                    page: 1,
+                    pageSize: credentialPageSize,
+                }),
             ]);
-            const platformData = requirePagedResponse<AppPlatform>(
-                platformPayload,
-                "App Platform",
-            );
-            const credentialData = requirePagedResponse<Credential>(
-                credentialPayload,
-                "凭据",
-            );
 
-            const credentialMap = Object.fromEntries(
-                credentialData.data.map((credential) => [
-                    credential.id,
-                    credential,
-                ]),
-            );
+            const credentialMap: Record<string, Credential> =
+                Object.fromEntries(
+                    credentialData.data.map((credential) => [
+                        credential.id,
+                        credential,
+                    ]),
+                );
+
             const missingIds = [
                 ...new Set(
                     platformData.data
@@ -147,13 +138,7 @@ export function PlatformsPage() {
                 ),
             ];
             const missingCredentials = await Promise.all(
-                missingIds.map((id) =>
-                    apiRequest<Credential>(
-                        `/v1/credentials/info?${toQuery({ id })}`,
-                        {},
-                        { token, onUnauthorized },
-                    ),
-                ),
+                missingIds.map((id) => api.credentials.get(id)),
             );
             missingCredentials.forEach((credential) => {
                 credentialMap[credential.id] = credential;
@@ -168,22 +153,21 @@ export function PlatformsPage() {
                 ),
             );
             setCredentialById(credentialMap);
-            if (platformData.totalPages > 0 && page > platformData.totalPages) {
+            if (
+                platformData.totalPages > 0 &&
+                page > platformData.totalPages
+            ) {
                 setPage(platformData.totalPages);
             }
-        } catch (loadError) {
+        } catch (error) {
             setResult(null);
             setCredentials([]);
             setCredentialById({});
-            setError(
-                loadError instanceof Error
-                    ? loadError.message
-                    : "App Platform 列表加载失败",
-            );
+            setLoadError(error);
         } finally {
             setLoading(false);
         }
-    }, [onUnauthorized, page, token]);
+    }, [api.credentials, api.platforms, page]);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => void loadPlatforms(), 0);
@@ -193,7 +177,7 @@ export function PlatformsPage() {
     function openCreate() {
         setEditing(null);
         setForm(emptyForm);
-        setFormError("");
+        setFormError(null);
         setFormOpen(true);
     }
 
@@ -210,7 +194,7 @@ export function PlatformsPage() {
             credentialId: platform.credentialId ?? "",
             hostKeys: platform.hostKeys?.join("\n") ?? "",
         });
-        setFormError("");
+        setFormError(null);
         setFormOpen(true);
     }
 
@@ -252,33 +236,23 @@ export function PlatformsPage() {
     async function savePlatform(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setSaving(true);
-        setFormError("");
+        setFormError(null);
         try {
             const body = buildRequest();
             if (editing) {
-                await apiRequest<void>(
-                    `/v1/platforms/update/${editing.id}`,
-                    { method: "PUT", body: JSON.stringify(body) },
-                    context,
-                );
-                setSuccess("App Platform 已更新，连接状态将异步刷新");
+                await api.platforms.update(editing.id, body);
+                setSuccessKey("platforms.success.updated");
+                notify.success("platforms.success.updated");
             } else {
-                await apiRequest<void>(
-                    "/v1/platforms/add",
-                    { method: "POST", body: JSON.stringify(body) },
-                    context,
-                );
-                setSuccess("App Platform 已创建，连接正在后台建立");
+                await api.platforms.create(body);
+                setSuccessKey("platforms.success.created");
+                notify.success("platforms.success.created");
                 setPage(1);
             }
             setFormOpen(false);
             await loadPlatforms();
         } catch (saveError) {
-            setFormError(
-                saveError instanceof Error
-                    ? saveError.message
-                    : "App Platform 保存失败",
-            );
+            setFormError(saveError);
         } finally {
             setSaving(false);
         }
@@ -287,22 +261,15 @@ export function PlatformsPage() {
     async function deletePlatform() {
         if (!deleting) return;
         setSaving(true);
-        setFormError("");
+        setDeleteError(null);
         try {
-            await apiRequest<void>(
-                `/v1/platforms/delete/${deleting.id}`,
-                { method: "DELETE" },
-                context,
-            );
+            await api.platforms.remove(deleting.id);
             setDeleting(null);
-            setSuccess("App Platform 已删除");
+            setSuccessKey("platforms.success.deleted");
+            notify.success("platforms.success.deleted");
             await loadPlatforms();
-        } catch (deleteError) {
-            setFormError(
-                deleteError instanceof Error
-                    ? deleteError.message
-                    : "App Platform 删除失败",
-            );
+        } catch (error) {
+            setDeleteError(error);
         } finally {
             setSaving(false);
         }
@@ -311,40 +278,51 @@ export function PlatformsPage() {
     return (
         <div className="space-y-6">
             <PageHeader
-                eyebrow="Managed runtimes"
-                title="App Platform"
-                description="登记运行应用的目标主机，并跟踪 Docker daemon 或 SYSTEMD SSH 连接的就绪状态。"
+                eyebrow={t("platforms.eyebrow")}
+                title={t("platforms.title")}
+                description={t("platforms.description")}
                 action={
                     <Button onClick={openCreate}>
                         <Plus />
-                        新增平台
+                        {t("platforms.addButton")}
                     </Button>
                 }
             />
 
-            {success ? (
-                <InlineMessage variant="success">{success}</InlineMessage>
-            ) : null}
-            {error ? <InlineMessage>{error}</InlineMessage> : null}
+            {successKey ? <SuccessBanner messageKey={successKey} /> : null}
+            <ErrorBanner
+                error={loadError}
+                fallbackKey="platforms.fallback.loadFailed"
+            />
 
             <section className="w-full max-w-full overflow-hidden rounded-xl border bg-card shadow-sm">
                 {loading ? (
                     <LoadingState />
                 ) : !result?.data.length ? (
                     <EmptyState
-                        title="还没有 App Platform"
-                        description="添加一台 Docker 或 SYSTEMD 主机，开始纳管 homelab 应用。"
+                        title={t("platforms.empty.title")}
+                        description={t("platforms.empty.description")}
                     />
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[980px] text-left text-sm">
                             <thead className="border-b bg-muted/45 text-xs text-muted-foreground">
                                 <tr>
-                                    <th className="px-4 py-3 font-medium">平台</th>
-                                    <th className="px-4 py-3 font-medium">连接</th>
-                                    <th className="px-4 py-3 font-medium">访问凭据</th>
-                                    <th className="px-4 py-3 font-medium">状态</th>
-                                    <th className="px-4 py-3 font-medium">更新时间</th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("platforms.columns.name")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("platforms.columns.address")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("platforms.columns.credential")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("platforms.columns.status")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("platforms.columns.updatedAt")}
+                                    </th>
                                     <th className="w-12 px-4 py-3" />
                                 </tr>
                             </thead>
@@ -362,7 +340,7 @@ export function PlatformsPage() {
                                         }
                                         onEdit={() => openEdit(platform)}
                                         onDelete={() => {
-                                            setFormError("");
+                                            setDeleteError(null);
                                             setDeleting(platform);
                                         }}
                                     />
@@ -386,29 +364,43 @@ export function PlatformsPage() {
                     <form onSubmit={savePlatform} className="space-y-5">
                         <DialogHeader>
                             <DialogTitle>
-                                {editing ? "编辑 App Platform" : "新增 App Platform"}
+                                {editing
+                                    ? t("platforms.form.editTitle")
+                                    : t("platforms.form.createTitle")}
                             </DialogTitle>
                             <DialogDescription>
                                 {editing
-                                    ? "平台类型创建后不可修改，连接参数更新后会异步重连。"
-                                    : "选择目标主机的应用运行方式并填写连接参数。"}
+                                    ? t("platforms.form.editDescription")
+                                    : t("platforms.form.createDescription")}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="grid gap-4">
-                            <Field label="名称" htmlFor="platform-name">
+                            <Field
+                                label={t("platforms.form.name")}
+                                htmlFor="platform-name"
+                            >
                                 <Input
                                     id="platform-name"
                                     required
+                                    placeholder={t(
+                                        "platforms.form.namePlaceholder",
+                                    )}
                                     value={form.name}
                                     onChange={(event) =>
                                         updateForm("name", event.target.value)
                                     }
                                 />
                             </Field>
-                            <Field label="描述" htmlFor="platform-description">
+                            <Field
+                                label={t("platforms.form.descriptionField")}
+                                htmlFor="platform-description"
+                            >
                                 <Input
                                     id="platform-description"
+                                    placeholder={t(
+                                        "platforms.form.descriptionPlaceholder",
+                                    )}
                                     value={form.description}
                                     onChange={(event) =>
                                         updateForm(
@@ -418,7 +410,10 @@ export function PlatformsPage() {
                                     }
                                 />
                             </Field>
-                            <Field label="平台类型" htmlFor="platform-type">
+                            <Field
+                                label={t("platforms.form.platformType")}
+                                htmlFor="platform-type"
+                            >
                                 <select
                                     id="platform-type"
                                     className={controlClass}
@@ -431,17 +426,26 @@ export function PlatformsPage() {
                                         )
                                     }
                                 >
-                                    <option value="SYSTEMD">SYSTEMD</option>
-                                    <option value="DOCKER">DOCKER</option>
+                                    <option value="SYSTEMD">
+                                        {t("platforms.type.SYSTEMD")}
+                                    </option>
+                                    <option value="DOCKER">
+                                        {t("platforms.type.DOCKER")}
+                                    </option>
                                 </select>
                             </Field>
 
                             {form.platformType === "DOCKER" ? (
-                                <Field label="Docker Host" htmlFor="docker-host">
+                                <Field
+                                    label={t("platforms.form.dockerHost")}
+                                    htmlFor="docker-host"
+                                >
                                     <Input
                                         id="docker-host"
                                         required
-                                        placeholder="tcp://host:2375"
+                                        placeholder={t(
+                                            "platforms.form.dockerHostPlaceholder",
+                                        )}
                                         value={form.dockerHost}
                                         onChange={(event) =>
                                             updateForm(
@@ -453,10 +457,16 @@ export function PlatformsPage() {
                                 </Field>
                             ) : (
                                 <div className="grid gap-4 sm:grid-cols-2">
-                                    <Field label="SSH Host" htmlFor="ssh-host">
+                                    <Field
+                                        label={t("platforms.form.sshHost")}
+                                        htmlFor="ssh-host"
+                                    >
                                         <Input
                                             id="ssh-host"
                                             required
+                                            placeholder={t(
+                                                "platforms.form.sshHostPlaceholder",
+                                            )}
                                             value={form.systemdSSHHost}
                                             onChange={(event) =>
                                                 updateForm(
@@ -466,7 +476,10 @@ export function PlatformsPage() {
                                             }
                                         />
                                     </Field>
-                                    <Field label="SSH 端口" htmlFor="ssh-port">
+                                    <Field
+                                        label={t("platforms.form.sshPort")}
+                                        htmlFor="ssh-port"
+                                    >
                                         <Input
                                             id="ssh-port"
                                             type="number"
@@ -483,12 +496,15 @@ export function PlatformsPage() {
                                         />
                                     </Field>
                                     <Field
-                                        label="SSH 用户名"
+                                        label={t("platforms.form.sshUsername")}
                                         htmlFor="ssh-username"
                                     >
                                         <Input
                                             id="ssh-username"
                                             required
+                                            placeholder={t(
+                                                "platforms.form.sshUsernamePlaceholder",
+                                            )}
                                             value={form.systemdSSHUsername}
                                             onChange={(event) =>
                                                 updateForm(
@@ -498,7 +514,10 @@ export function PlatformsPage() {
                                             }
                                         />
                                     </Field>
-                                    <Field label="访问凭据" htmlFor="credential-id">
+                                    <Field
+                                        label={t("platforms.form.credential")}
+                                        htmlFor="credential-id"
+                                    >
                                         <select
                                             id="credential-id"
                                             className={controlClass}
@@ -510,26 +529,38 @@ export function PlatformsPage() {
                                                 )
                                             }
                                         >
-                                            <option value="">不使用凭据</option>
+                                            <option value="">
+                                                {t(
+                                                    "platforms.form.credentialNone",
+                                                )}
+                                            </option>
                                             {credentials.map((credential) => (
                                                 <option
                                                     key={credential.id}
                                                     value={credential.id}
                                                 >
-                                                    {credential.name} · {credential.credentialType === "SSH_PRIVATE_KEY" ? "SSH 私钥" : "密码"}
+                                                    {credential.name} ·{" "}
+                                                    {t(
+                                                        `credentials.type.${credential.credentialType}`,
+                                                    )}
                                                 </option>
                                             ))}
                                         </select>
                                     </Field>
                                     <div className="sm:col-span-2">
                                         <Field
-                                            label="Host Keys（可选，每行一个）"
+                                            label={t(
+                                                "platforms.form.hostKeys",
+                                            )}
                                             htmlFor="host-keys"
                                         >
                                             <textarea
                                                 id="host-keys"
                                                 className={textAreaClass}
                                                 spellCheck={false}
+                                                placeholder={t(
+                                                    "platforms.form.hostKeysPlaceholder",
+                                                )}
                                                 value={form.hostKeys}
                                                 onChange={(event) =>
                                                     updateForm(
@@ -544,19 +575,24 @@ export function PlatformsPage() {
                             )}
                         </div>
 
-                        {formError ? (
-                            <InlineMessage>{formError}</InlineMessage>
-                        ) : null}
+                        <ErrorBanner
+                            error={formError}
+                            fallbackKey="platforms.fallback.saveFailed"
+                        />
                         <DialogFooter>
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => setFormOpen(false)}
                             >
-                                取消
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={saving}>
-                                {saving ? "保存中..." : "保存平台"}
+                                {saving
+                                    ? t("common.saving")
+                                    : editing
+                                      ? t("platforms.form.submitEdit")
+                                      : t("platforms.form.submitCreate")}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -571,21 +607,26 @@ export function PlatformsPage() {
             >
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>删除 App Platform</DialogTitle>
+                        <DialogTitle>
+                            {t("platforms.deleteDialog.title")}
+                        </DialogTitle>
                         <DialogDescription>
-                            将断开并删除“{deleting?.name}”的平台连接记录。
+                            {t("platforms.deleteDialog.description", {
+                                name: deleting?.name ?? "",
+                            })}
                         </DialogDescription>
                     </DialogHeader>
-                    {formError ? (
-                        <InlineMessage>{formError}</InlineMessage>
-                    ) : null}
+                    <ErrorBanner
+                        error={deleteError}
+                        fallbackKey="platforms.fallback.deleteFailed"
+                    />
                     <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => setDeleting(null)}
                         >
-                            取消
+                            {t("common.cancel")}
                         </Button>
                         <Button
                             type="button"
@@ -593,7 +634,9 @@ export function PlatformsPage() {
                             disabled={saving}
                             onClick={() => void deletePlatform()}
                         >
-                            {saving ? "删除中..." : "确认删除"}
+                            {saving
+                                ? t("common.deleting")
+                                : t("platforms.deleteDialog.confirm")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -613,6 +656,7 @@ function PlatformRow({
     onEdit: () => void;
     onDelete: () => void;
 }) {
+    const { t } = useTranslation();
     const privateKeyInfo =
         credential?.credentialType === "SSH_PRIVATE_KEY"
             ? credential.sshKeyInfo
@@ -636,20 +680,21 @@ function PlatformRow({
                     <div className="min-w-0">
                         <p className="font-medium">{platform.name}</p>
                         <p className="max-w-52 truncate text-xs text-muted-foreground">
-                            {platform.description || "无描述"}
+                            {platform.description ||
+                                t(`platforms.type.${platform.platformType}`)}
                         </p>
                     </div>
                 </div>
             </td>
             <td className="px-4 py-3">
                 <p className="font-mono text-xs font-medium">
-                    {platform.platformType}
+                    {t(`platforms.type.${platform.platformType}`)}
                 </p>
                 <p
                     className="mt-1 max-w-64 truncate font-mono text-xs text-muted-foreground"
                     title={endpoint ?? undefined}
                 >
-                    {endpoint || "—"}
+                    {endpoint || t("common.dash")}
                 </p>
             </td>
             <td className="px-4 py-3">
@@ -657,22 +702,23 @@ function PlatformRow({
                     <div className="max-w-72">
                         <p className="text-xs font-medium">{credential.name}</p>
                         {privateKeyInfo ? (
-                            <code
-                                className="mt-1 block truncate rounded-md bg-slate-950 px-2 py-1.5 font-mono text-[0.7rem] text-slate-100"
-                                title={formatFingerprint(
-                                    privateKeyInfo.fingerprint,
-                                )}
-                            >
-                                {formatFingerprint(privateKeyInfo.fingerprint)}
-                            </code>
+                            <div className="mt-1">
+                                <FingerprintBadge
+                                    fingerprint={privateKeyInfo.fingerprint}
+                                />
+                            </div>
                         ) : (
                             <p className="mt-1 text-xs text-muted-foreground">
-                                文本密码
+                                {t(
+                                    `credentials.type.${credential.credentialType}`,
+                                )}
                             </p>
                         )}
                     </div>
                 ) : (
-                    <span className="text-xs text-muted-foreground">未配置</span>
+                    <span className="text-xs text-muted-foreground">
+                        {t("common.dash")}
+                    </span>
                 )}
             </td>
             <td className="px-4 py-3">
@@ -680,7 +726,9 @@ function PlatformRow({
                     <span
                         className={`size-2 rounded-full ${platform.online ? "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.14)]" : "bg-slate-400"}`}
                     />
-                    {platform.online ? "在线" : "离线"}
+                    {platform.online
+                        ? t("platforms.status.online")
+                        : t("platforms.status.offline")}
                 </span>
             </td>
             <td className="px-4 py-3 text-xs text-muted-foreground">
@@ -691,17 +739,22 @@ function PlatformRow({
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-sm">
                             <MoreHorizontal />
-                            <span className="sr-only">平台操作</span>
+                            <span className="sr-only">
+                                {t("common.actions")}
+                            </span>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-32">
                         <DropdownMenuItem onClick={onEdit}>
                             <Pencil />
-                            编辑
+                            {t("common.edit")}
                         </DropdownMenuItem>
-                        <DropdownMenuItem variant="destructive" onClick={onDelete}>
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={onDelete}
+                        >
                             <Trash2 />
-                            删除
+                            {t("common.delete")}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>

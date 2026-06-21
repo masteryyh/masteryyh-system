@@ -72,7 +72,7 @@ public class AppPlatformService {
         logger.info("Requesting platform with ID {}", id);
 
         AppPlatform appPlatform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Platform not found"));
+                new BusinessException(404, "error.platform.notFound", "Platform not found"));
         boolean status = appPlatform.getPlatformType().equals(PlatformType.DOCKER)
                 ? dockerManager.getStatus(id)
                 : sshManager.getStatus(id);
@@ -82,7 +82,7 @@ public class AppPlatformService {
     @Transactional(rollbackFor = Exception.class)
     public void add(AddAppPlatformDto data) {
         if (appPlatformRepository.existsByName(data.name())) {
-            throw new BusinessException(409, "Platform already exists");
+            throw new BusinessException(409, "error.platform.alreadyExists", "Platform already exists");
         }
 
         AppPlatform appPlatform = new AppPlatform();
@@ -100,11 +100,12 @@ public class AppPlatformService {
             appPlatform.setSystemdSSHUsername(data.systemdSSHUsername());
             appPlatform.setHostKeys(data.hostKeys());
         } else {
-            throw new BusinessException(400, "Unknown platform type " + data.platformType().name());
+            throw new BusinessException(400, "error.platform.unknownType",
+                    "Unknown platform type " + data.platformType().name());
         }
 
         if (data.credentialId() != null && !credentialRepository.existsById(data.credentialId())) {
-            throw new BusinessException(404, "Credential not found");
+            throw new BusinessException(404, "error.platform.credentialNotFound", "Credential not found");
         }
         appPlatform.setCredentialId(data.credentialId());
         appPlatform = appPlatformRepository.saveAndFlush(appPlatform);
@@ -122,11 +123,11 @@ public class AppPlatformService {
     @Transactional(rollbackFor = Exception.class)
     public void update(UUID id, UpdateAppPlatformDto data) {
         AppPlatform platform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Platform not found"));
+                new BusinessException(404, "error.platform.notFound", "Platform not found"));
 
         if (!data.name().equals(platform.getName())) {
             if (appPlatformRepository.existsByName(data.name())) {
-                throw new BusinessException(409, "Platform already exists");
+                throw new BusinessException(409, "error.platform.alreadyExists", "Platform already exists");
             }
             platform.setName(data.name());
         }
@@ -157,7 +158,7 @@ public class AppPlatformService {
             if (data.credentialId() != null) {
                 boolean exists = credentialRepository.existsById(data.credentialId());
                 if (!exists) {
-                    throw new BusinessException(404, "Credential not found");
+                    throw new BusinessException(404, "error.platform.credentialNotFound", "Credential not found");
                 }
             }
             platform.setCredentialId(data.credentialId());
@@ -182,7 +183,7 @@ public class AppPlatformService {
     @Transactional(rollbackFor = Exception.class)
     public void remove(UUID id) {
         AppPlatform platform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Platform not found"));
+                new BusinessException(404, "error.platform.notFound", "Platform not found"));
         if (platform.getPlatformType().equals(PlatformType.DOCKER)) {
             dockerManager.removePlatform(id);
         } else {

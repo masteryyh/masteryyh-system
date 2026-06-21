@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { toast } from "sonner";
 
 import { VersionContext } from "@/context/version-context";
-import { apiRequest } from "@/lib/api";
+import { useApi } from "@/hooks/use-api";
+import { useNotify } from "@/hooks/use-notify";
 import type { VersionInfo } from "@/types/api";
 
-const versionFailureText = "Failed to retrieve version info";
-
 export function VersionProvider({ children }: { children: ReactNode }) {
+    const api = useApi();
+    const notify = useNotify();
+
     const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
     const [loadFailed, setLoadFailed] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         let active = true;
-        apiRequest<VersionInfo>("/v1/version")
+        api.system
+            .getVersion()
             .then((data) => {
                 if (!active) return;
                 setVersionInfo(data);
@@ -24,11 +26,8 @@ export function VersionProvider({ children }: { children: ReactNode }) {
                 if (!active) return;
                 setVersionInfo(null);
                 setLoadFailed(true);
-                toast.error(versionFailureText, {
-                    description:
-                        requestError instanceof Error
-                            ? requestError.message
-                            : undefined,
+                notify.error(requestError, {
+                    titleKey: "app.footerLoadFailed",
                 });
             })
             .finally(() => {
@@ -38,6 +37,8 @@ export function VersionProvider({ children }: { children: ReactNode }) {
         return () => {
             active = false;
         };
+        // 只在 mount 时拉一次版本信息；token 切换不需要触发重新拉取
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const value = useMemo(

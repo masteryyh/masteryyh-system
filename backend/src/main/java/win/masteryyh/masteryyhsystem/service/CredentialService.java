@@ -58,7 +58,7 @@ public class CredentialService {
         logger.info("Requesting credential with ID {}", id);
 
         Credential credential = credentialRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Credential not found"));
+                new BusinessException(404, "error.credential.notFound", "Credential not found"));
         return CredentialDto.from(credential);
     }
 
@@ -67,7 +67,7 @@ public class CredentialService {
         Credential credential = new Credential();
 
         if (credentialRepository.existsByName(data.name())) {
-            throw new BusinessException(409, "Credential already exists");
+            throw new BusinessException(409, "error.credential.alreadyExists", "Credential already exists");
         }
 
         credential.setName(data.name());
@@ -98,12 +98,12 @@ public class CredentialService {
     @Transactional(rollbackFor = Exception.class)
     public void update(UUID id, UpdateCredentialDto data) {
         Credential credential = credentialRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Credential not found"));
+                new BusinessException(404, "error.credential.notFound", "Credential not found"));
 
         logger.info("Updating credential {}", credential.getName());
         if (!data.name().equals(credential.getName())) {
             if (credentialRepository.existsByName(data.name())) {
-                throw new BusinessException(409, "Credential name already exists");
+                throw new BusinessException(409, "error.credential.nameAlreadyExists", "Credential name already exists");
             }
             credential.setName(data.name());
         }
@@ -116,9 +116,9 @@ public class CredentialService {
         logger.info("Removing credential with id {}", id);
 
         Credential credential = credentialRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "Credential not found"));
+                new BusinessException(404, "error.credential.notFound", "Credential not found"));
         if (appPlatformRepository.existsByCredentialId(credential.getId())) {
-            throw new BusinessException(409, "Credential already occupied");
+            throw new BusinessException(409, "error.credential.occupied", "Credential already occupied");
         }
 
         credentialRepository.delete(credential);

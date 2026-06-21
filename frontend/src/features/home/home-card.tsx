@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 
+import { useTranslation } from "@/hooks/use-translation";
+
 export function HomeCard({
     icon,
     index,
@@ -15,6 +17,7 @@ export function HomeCard({
     description: string;
     to: string;
 }) {
+    const { t } = useTranslation();
     return (
         <Link
             to={to}
@@ -33,7 +36,7 @@ export function HomeCard({
                 {description}
             </p>
             <span className="mt-auto flex items-center gap-2 pt-6 text-sm font-medium">
-                打开管理页
+                {t("common.more")}
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1 motion-reduce:transform-none" />
             </span>
         </Link>

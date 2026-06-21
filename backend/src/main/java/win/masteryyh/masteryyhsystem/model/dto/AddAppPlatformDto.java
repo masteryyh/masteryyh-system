@@ -10,26 +10,30 @@ import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
 import java.util.List;
 import java.util.UUID;
 
-public record AddAppPlatformDto(@NotBlank(message = "Name cannot be blank") String name,
+public record AddAppPlatformDto(@NotBlank(message = "validation.platform.name.notBlank") String name,
                                 String description,
-                                @NotNull(message = "Platform type cannot be null") PlatformType platformType,
+                                @NotNull(message = "validation.platform.type.notNull") PlatformType platformType,
                                 String dockerHost,
                                 String systemdSSHHost,
-                                @Min(value = 1, message = "SSH port cannot below 1") @Max(value = 65535, message = "SSH port cannot above 65535") Integer systemdSSHPort,
+                                @Min(value = 1, message = "validation.platform.sshPort.min")
+                                @Max(value = 65535, message = "validation.platform.sshPort.max") Integer systemdSSHPort,
                                 String systemdSSHUsername,
                                 UUID credentialId,
                                 List<String> hostKeys) {
     public void validate() {
         if (platformType.equals(PlatformType.DOCKER)) {
             if (StringUtils.isBlank(dockerHost)) {
-                throw new BusinessException(400, "Docker host cannot be empty");
+                throw new BusinessException(400, "error.platform.dockerHost.empty",
+                        "Docker host cannot be empty");
             }
         } else if (platformType.equals(PlatformType.SYSTEMD)) {
             if (StringUtils.isBlank(systemdSSHHost)) {
-                throw new BusinessException(400, "SSH host cannot be empty");
+                throw new BusinessException(400, "error.platform.sshHost.empty",
+                        "SSH host cannot be empty");
             }
             if (StringUtils.isBlank(systemdSSHUsername)) {
-                throw new BusinessException(400, "SSH username cannot be empty");
+                throw new BusinessException(400, "error.platform.sshUsername.empty",
+                        "SSH username cannot be empty");
             }
         }
     }

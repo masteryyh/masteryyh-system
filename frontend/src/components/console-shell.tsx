@@ -33,14 +33,15 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { useSession } from "@/hooks/use-session";
+import { useTranslation } from "@/hooks/use-translation";
 
 const navigation = [
-    { to: "/home", label: "主页", icon: Home },
-    { to: "/credentials", label: "凭证管理", icon: KeyRound },
-    { to: "/platforms", label: "App Platform", icon: Server },
+    { to: "/home", labelKey: "nav.home", icon: Home },
+    { to: "/credentials", labelKey: "nav.credentials", icon: KeyRound },
+    { to: "/platforms", labelKey: "nav.platforms", icon: Server },
 ] satisfies Array<{
     to: string;
-    label: string;
+    labelKey: string;
     icon: typeof Home;
 }>;
 
@@ -48,14 +49,16 @@ export function ConsoleShell() {
     const { session, logout } = useSession();
     const location = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
 
     const initials = useMemo(
         () => session?.username.slice(0, 2).toUpperCase() ?? "",
         [session?.username],
     );
-    const title = navigation.find(
+    const activeItem = navigation.find(
         (item) => item.to === location.pathname,
-    )?.label;
+    );
+    const title = activeItem ? t(activeItem.labelKey) : undefined;
 
     function handleLogout() {
         logout();
@@ -81,7 +84,7 @@ export function ConsoleShell() {
                                         MasterYYH
                                     </span>
                                     <span className="truncate text-xs">
-                                        Homelab Console
+                                        {t("nav.console")}
                                     </span>
                                 </div>
                             </SidebarMenuButton>
@@ -93,6 +96,7 @@ export function ConsoleShell() {
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 {navigation.map((item) => {
+                                    const label = t(item.labelKey);
                                     const isActive =
                                         location.pathname === item.to;
                                     return (
@@ -100,11 +104,11 @@ export function ConsoleShell() {
                                             <SidebarMenuButton
                                                 asChild
                                                 isActive={isActive}
-                                                tooltip={item.label}
+                                                tooltip={label}
                                             >
                                                 <Link to={item.to}>
                                                     <item.icon className="size-4" />
-                                                    <span>{item.label}</span>
+                                                    <span>{label}</span>
                                                 </Link>
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>
@@ -129,9 +133,6 @@ export function ConsoleShell() {
                                             <span className="truncate font-semibold">
                                                 {session.username}
                                             </span>
-                                            <span className="truncate text-xs">
-                                                管理员
-                                            </span>
                                         </div>
                                     </SidebarMenuButton>
                                 </DropdownMenuTrigger>
@@ -147,7 +148,7 @@ export function ConsoleShell() {
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={handleLogout}>
                                         <LogOut className="size-4" />
-                                        退出登录
+                                        {t("nav.logout")}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

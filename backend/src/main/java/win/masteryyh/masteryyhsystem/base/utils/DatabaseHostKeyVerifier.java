@@ -7,6 +7,7 @@ import org.bouncycastle.util.encoders.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import win.masteryyh.masteryyhsystem.base.utils.crypto.CryptoUtils;
 import win.masteryyh.masteryyhsystem.model.AppPlatform;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -35,6 +35,7 @@ public class DatabaseHostKeyVerifier implements HostKeyVerifier {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean verify(String hostname, int port, PublicKey key) {
         if (KeyType.fromKey(key).equals(KeyType.UNKNOWN)) {
             return false;
@@ -72,17 +73,15 @@ public class DatabaseHostKeyVerifier implements HostKeyVerifier {
 
         final AppPlatform copy = appPlatform;
         final byte[] keyBytes = sshWireKey;
-        CompletableFuture.runAsync(() -> {
-            try {
-                String header = CryptoUtils.resolveSSHPublicKeyHeader(keyBytes);
-                String entry = port == 22
-                        ? String.format("%s %s %s", hostname, header, base64)
-                        : String.format("[%s]:%d %s %s", hostname, port, header, base64);
-                appPlatformRepository.updateHostKey(copy.getId(), entry);
-            } catch (Exception e) {
-                logger.warn("An error occurred while saving known host entry: ", e);
-            }
-        }, AsyncTaskExecutor.getInstance());
+        try {
+            String header = CryptoUtils.resolveSSHPublicKeyHeader(keyBytes);
+            String entry = port == 22
+                    ? String.format("%s %s %s", hostname, header, base64)
+                    : String.format("[%s]:%d %s %s", hostname, port, header, base64);
+            appPlatformRepository.updateHostKey(copy.getId(), entry);
+        } catch (Exception e) {
+            logger.warn("An error occurred while saving known host entry: ", e);
+        }
         return true;
     }
 

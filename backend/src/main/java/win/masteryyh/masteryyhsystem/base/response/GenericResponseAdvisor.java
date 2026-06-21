@@ -22,6 +22,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 import tools.jackson.databind.ObjectMapper;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
 
+import java.util.List;
 import java.util.StringJoiner;
 
 @RestControllerAdvice
@@ -29,6 +30,8 @@ public class GenericResponseAdvisor implements ResponseBodyAdvice<Object> {
     private final ObjectMapper mapper;
 
     private static final Logger logger = LoggerFactory.getLogger(GenericResponseAdvisor.class);
+
+    private static final String VALIDATION_FALLBACK_KEY = "error.parameterValidation";
 
     public GenericResponseAdvisor(ObjectMapper mapper) {
         this.mapper = mapper;
@@ -54,9 +57,9 @@ public class GenericResponseAdvisor implements ResponseBodyAdvice<Object> {
             case String s -> mapper.writeValueAsString(GenericResponse.ok(s));
             case ResponseEntity<?> re -> {
                 HttpStatusCode status = re.getStatusCode();
-                yield new GenericResponse<>(status.value(), re.toString(), re.getBody());
+                yield new GenericResponse<>(status.value(), re.toString(), null, re.getBody());
             }
-            case BusinessException e -> GenericResponse.failed(e.getCode(), e.getMessage());
+            case BusinessException e -> GenericResponse.failed(e.getCode(), e.getMessageKey(), e.getMessage());
             case Exception e -> {
                 logger.error("An error occurred: ", e);
                 yield GenericResponse.error();
@@ -67,39 +70,41 @@ public class GenericResponseAdvisor implements ResponseBodyAdvice<Object> {
 
     @ExceptionHandler(value = BusinessException.class)
     public GenericResponse<Void> businessExceptionHandler(BusinessException e) {
-        return new GenericResponse<>(e.getCode(), e.getMessage(), null);
+        return GenericResponse.failed(e.getCode(), e.getMessageKey(), e.getMessage());
     }
 
     @ExceptionHandler(value = ValidationException.class)
     public GenericResponse<Void> validationExceptionHandler(ValidationException e) {
-        return new GenericResponse<>(HttpStatus.BAD_REQUEST.value(), e.getMessage(), null);
+        return GenericResponse.failed(HttpStatus.BAD_REQUEST.value(), VALIDATION_FALLBACK_KEY, e.getMessage());
     }
 
     @ExceptionHandler(value = BindException.class)
     public GenericResponse<Void> bindExceptionHandler(BindException e) {
-        BindingResult br = e.getBindingResult();
-        StringJoiner messageJoiner =
-                new StringJoiner("; ", "Parameter validation failed: ", "");
-        for (FieldError fieldError : br.getFieldErrors()) {
-            messageJoiner.add(fieldError.getDefaultMessage());
-        }
-        return new GenericResponse<>(HttpStatus.BAD_REQUEST.value(), messageJoiner.toString(), null);
+        return validationFailureResponse(e.getBindingResult());
     }
 
     @ExceptionHandler(value = MethodArgumentNotValidException.class)
     public GenericResponse<Void> argumentNotValidExceptionHandler(MethodArgumentNotValidException e) {
-        BindingResult br = e.getBindingResult();
-        StringJoiner messageJoiner =
-                new StringJoiner("; ", "Parameter validation failed: ", "");
-        for (FieldError fieldError : br.getFieldErrors()) {
-            messageJoiner.add(fieldError.getDefaultMessage());
-        }
-        return new GenericResponse<>(HttpStatus.BAD_REQUEST.value(), messageJoiner.toString(), null);
+        return validationFailureResponse(e.getBindingResult());
     }
 
     @ExceptionHandler(value = Exception.class)
-    public GenericResponse<Void> exceptionHandler(BusinessException e) {
+    public GenericResponse<Void> exceptionHandler(Exception e) {
         logger.error("An error occurred: ", e);
         return GenericResponse.error();
+    }
+
+    private GenericResponse<Void> validationFailureResponse(BindingResult br) {
+        List<FieldError> errors = br.getFieldErrors();
+        String primaryKey = errors.isEmpty()
+                ? VALIDATION_FALLBACK_KEY
+                : errors.getFirst().getDefaultMessage();
+
+        StringJoiner messageJoiner =
+                new StringJoiner("; ", "Parameter validation failed: ", "");
+        for (FieldError fieldError : errors) {
+            messageJoiner.add(fieldError.getDefaultMessage());
+        }
+        return GenericResponse.failed(HttpStatus.BAD_REQUEST.value(), primaryKey, messageJoiner.toString());
     }
 }
