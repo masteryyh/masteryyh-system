@@ -22,6 +22,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.type.SqlTypes;
+import win.masteryyh.masteryyhsystem.model.dto.InitSystem;
 import win.masteryyh.masteryyhsystem.model.dto.PlatformType;
 
 import java.time.LocalDateTime;
@@ -53,17 +54,24 @@ public class AppPlatform {
     @Enumerated(EnumType.STRING)
     private PlatformType platformType;
 
+    /**
+     * 主机类型的 init system（systemd / openrc）。仅当 {@link #platformType} 为 {@link PlatformType#HOST} 时有效。
+     */
+    @Column(name = "init_system")
+    @Enumerated(EnumType.STRING)
+    private InitSystem initSystem;
+
     @Column(name = "docker_host")
     private String dockerHost;
 
-    @Column(name = "systemd_ssh_host")
-    private String systemdSSHHost;
+    @Column(name = "ssh_host")
+    private String sshHost;
 
-    @Column(name = "systemd_ssh_port")
-    private Integer systemdSSHPort;
+    @Column(name = "ssh_port")
+    private Integer sshPort;
 
-    @Column(name = "systemd_ssh_username")
-    private String systemdSSHUsername;
+    @Column(name = "ssh_username")
+    private String sshUsername;
 
     @Column(name = "credential_id")
     private UUID credentialId;

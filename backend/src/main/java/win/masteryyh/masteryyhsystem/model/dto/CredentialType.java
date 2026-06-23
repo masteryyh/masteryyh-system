@@ -6,4 +6,6 @@ public enum CredentialType {
     SSH_PUBLIC_KEY,
 
     TEXT_PASSWORD,
+
+    X509_CERTIFICATE,
 }

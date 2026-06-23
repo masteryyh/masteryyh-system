@@ -92,12 +92,13 @@ public class AppPlatformService {
 
         if (data.platformType().equals(PlatformType.DOCKER)) {
             appPlatform.setDockerHost(data.dockerHost());
-        } else if (data.platformType().equals(PlatformType.SYSTEMD)) {
-            appPlatform.setSystemdSSHHost(data.systemdSSHHost());
+        } else if (data.platformType().equals(PlatformType.HOST)) {
+            appPlatform.setInitSystem(data.initSystem());
+            appPlatform.setSshHost(data.sshHost());
 
-            int port = data.systemdSSHPort() == null ? 22 : data.systemdSSHPort();
-            appPlatform.setSystemdSSHPort(port);
-            appPlatform.setSystemdSSHUsername(data.systemdSSHUsername());
+            int port = data.sshPort() == null ? 22 : data.sshPort();
+            appPlatform.setSshPort(port);
+            appPlatform.setSshUsername(data.sshUsername());
             appPlatform.setHostKeys(data.hostKeys());
         } else {
             throw new BusinessException(400, "error.platform.unknownType",
@@ -140,16 +141,18 @@ public class AppPlatformService {
                 connUpdated = true;
             }
         } else {
-            int port =  data.systemdSSHPort() == null ? 22 : data.systemdSSHPort();
+            int port =  data.sshPort() == null ? 22 : data.sshPort();
 
-            if (platform.getSystemdSSHPort() != port
-                    || !Objects.equals(platform.getSystemdSSHUsername(), data.systemdSSHUsername())
-                    || !Objects.equals(platform.getSystemdSSHHost(), data.systemdSSHHost())) {
+            if (platform.getSshPort() != port
+                    || !Objects.equals(platform.getSshUsername(), data.sshUsername())
+                    || !Objects.equals(platform.getSshHost(), data.sshHost())
+                    || !Objects.equals(platform.getInitSystem(), data.initSystem())) {
                 connUpdated = true;
             }
-            platform.setSystemdSSHHost(data.systemdSSHHost());
-            platform.setSystemdSSHPort(port);
-            platform.setSystemdSSHUsername(data.systemdSSHUsername());
+            platform.setInitSystem(data.initSystem());
+            platform.setSshHost(data.sshHost());
+            platform.setSshPort(port);
+            platform.setSshUsername(data.sshUsername());
 
             platform.setHostKeys(data.hostKeys());
         }

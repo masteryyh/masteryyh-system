@@ -9,6 +9,7 @@ import win.masteryyh.masteryyhsystem.model.AppPlatform;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface AppPlatformRepository extends
@@ -16,10 +17,10 @@ public interface AppPlatformRepository extends
     @Query("SELECT platform FROM AppPlatform platform WHERE platform.platformType = PlatformType.DOCKER AND platform.deletedAt IS NULL ORDER BY platform.updatedAt DESC, platform.createdAt DESC")
     List<AppPlatform> findDockerPlatforms();
 
-    @Query("SELECT platform FROM AppPlatform platform WHERE platform.platformType = PlatformType.SYSTEMD AND platform.deletedAt IS NULL ORDER BY platform.updatedAt DESC, platform.createdAt DESC")
-    List<AppPlatform> findSystemDPlatforms();
+    @Query("SELECT platform FROM AppPlatform platform WHERE platform.platformType = PlatformType.HOST AND platform.deletedAt IS NULL ORDER BY platform.updatedAt DESC, platform.createdAt DESC")
+    List<AppPlatform> findHostPlatforms();
 
-    @Query("SELECT platform FROM AppPlatform platform WHERE platform.systemdSSHHost = :host AND platform.systemdSSHPort = :port AND platform.deletedAt IS NULL")
+    @Query("SELECT platform FROM AppPlatform platform WHERE platform.sshHost = :host AND platform.sshPort = :port AND platform.deletedAt IS NULL")
     Optional<AppPlatform> findByHostPort(String host, int port);
 
     @Modifying
@@ -29,4 +30,10 @@ public interface AppPlatformRepository extends
     boolean existsByName(String name);
 
     boolean existsByCredentialId(UUID credentialId);
+
+    /**
+     * 所有当前正在被引用（非软删）的凭据 ID 集合。用于批量计算 IN_USE 状态，避免 N+1。
+     */
+    @Query("SELECT DISTINCT platform.credentialId FROM AppPlatform platform WHERE platform.credentialId IS NOT NULL AND platform.deletedAt IS NULL")
+    Set<UUID> findInUseCredentialIds();
 }

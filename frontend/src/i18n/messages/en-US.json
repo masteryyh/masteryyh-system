@@ -8,6 +8,7 @@
         "confirming": "Processing…",
         "edit": "Edit",
         "add": "Add",
+        "detail": "Details",
         "actions": "Actions",
         "previousPage": "Previous",
         "nextPage": "Next",
@@ -77,19 +78,34 @@
             "description": "Description",
             "type": "Type",
             "fingerprint": "Public key fingerprint",
+            "status": "Status",
+            "expiresAt": "Expires",
             "updatedAt": "Updated at",
             "actions": "Actions"
         },
         "type": {
             "SSH_PRIVATE_KEY": "SSH private key",
             "SSH_PUBLIC_KEY": "SSH public key",
-            "TEXT_PASSWORD": "Text password"
+            "TEXT_PASSWORD": "Text password",
+            "X509_CERTIFICATE": "X.509 certificate"
+        },
+        "status": {
+            "ACTIVE": "Active",
+            "IN_USE": "In Use",
+            "EXPIRING_SOON": "Expiring Soon",
+            "EXPIRED": "Expired"
+        },
+        "expiry": {
+            "none": "Never expires",
+            "validUntil": "Valid until {date}",
+            "expiringSoon": "Expires in {days} day(s)",
+            "expired": "Expired on {date}"
         },
         "form": {
             "createTitle": "New credential",
             "editTitle": "Edit credential",
             "createDescription": "Add a new access credential.",
-            "editDescription": "Update name and description. SSH key material and passwords are immutable once created.",
+            "editDescription": "Update name and description. SSH keys, certificates and passwords are immutable once created.",
             "name": "Name",
             "namePlaceholder": "e.g. homelab-root",
             "descriptionField": "Description",
@@ -103,8 +119,62 @@
             "sshPublicKeyPlaceholder": "e.g. ssh-ed25519 AAAA... user@host",
             "password": "Password",
             "passwordPlaceholder": "Enter password",
+            "certificate": "Certificate (X.509 PEM)",
+            "certificatePlaceholder": "Paste certificate or chain starting with -----BEGIN CERTIFICATE-----",
+            "certificatePrivateKey": "Private key (PKCS#8 / PKCS#1 / SEC1)",
+            "certificatePrivateKeyPlaceholder": "Paste PEM private key starting with -----BEGIN [...] PRIVATE KEY-----",
+            "certificatePassphrase": "Passphrase (optional)",
+            "certificatePassphrasePlaceholder": "If the key is encrypted",
+            "expiresAt": "Expires at (optional)",
+            "expiresAtPlaceholder": "Pick an expiration date and time",
+            "expiresAtHint": "Leave empty for no expiration. Expired credentials are auto-flagged as Expired.",
+            "expiresAtCertHint": "X.509 expiration is bound to the certificate notAfter: {date}. It cannot be changed manually.",
             "submitCreate": "Create",
             "submitEdit": "Save"
+        },
+        "cert": {
+            "validUntil": "Valid until {date}",
+            "expiringSoon": "Expires in {days} day(s)",
+            "expired": "Expired on {date}",
+            "commonName": "Common name (CN)",
+            "distinguishedName": "Distinguished Name",
+            "selfSigned": "Self-signed",
+            "validFrom": "Valid from",
+            "validTo": "Valid to",
+            "publicKey": "Public key",
+            "signatureAlgorithm": "Signature algorithm",
+            "serialNumber": "Serial number",
+            "fingerprint": "SHA-256 fingerprint",
+            "san": "Subject Alternative Name",
+            "sanEmpty": "None"
+        },
+        "detail": {
+            "basics": "Basics",
+            "overview": "Credential overview",
+            "description": "Description",
+            "sshKey": "Key info",
+            "password": "Password",
+            "lifecycle": "Lifecycle",
+            "status": "Status",
+            "expiresAt": "Expires at",
+            "subject": "Subject",
+            "issuer": "Issuer",
+            "validity": "Validity",
+            "cryptography": "Cryptography",
+            "sans": "Subject Alternative Names",
+            "id": "ID",
+            "createdAt": "Created at",
+            "updatedAt": "Updated at",
+            "keyType": "Type",
+            "keyBitLength": "Bits",
+            "curveName": "Curve",
+            "fingerprint": "Fingerprint",
+            "publicKey": "Public key",
+            "protectedSecret": "Protected password",
+            "encryptedAtRest": "Encrypted at rest; the original value is never sent to this page",
+            "securityState": "Security state",
+            "passwordLocked": "The password is stored encrypted and intentionally not exposed in the UI. To rotate it, delete this credential and create a new one.",
+            "copy": "Copy"
         },
         "success": {
             "created": "Credential created",
@@ -125,7 +195,7 @@
     "platforms": {
         "eyebrow": "Targets",
         "title": "App Platform",
-        "description": "Register and connect Systemd hosts or Docker platforms under management.",
+        "description": "Register and connect hosts or Docker platforms under management.",
         "addButton": "New platform",
         "empty": {
             "title": "No platforms yet",
@@ -142,7 +212,7 @@
             "actions": "Actions"
         },
         "type": {
-            "SYSTEMD": "Systemd host",
+            "HOST": "Host",
             "DOCKER": "Docker host"
         },
         "status": {
@@ -171,7 +241,8 @@
             "hostKeys": "Known host keys",
             "hostKeysPlaceholder": "One host key per line; leave empty to learn on first connect",
             "submitCreate": "Create",
-            "submitEdit": "Save"
+            "submitEdit": "Save",
+            "initSystem": "Init system"
         },
         "success": {
             "created": "Platform created",
@@ -187,6 +258,10 @@
             "loadFailed": "Failed to load platforms",
             "saveFailed": "Failed to save platform",
             "deleteFailed": "Failed to delete platform"
+        },
+        "initSystem": {
+            "SYSTEMD": "systemd",
+            "OPENRC": "OpenRC"
         }
     },
     "fingerprint": {
@@ -195,6 +270,22 @@
         "copyFailed": "Copy failed, please select and copy manually",
         "ariaCopy": "Copy fingerprint {fingerprint}",
         "ariaCopied": "Fingerprint copied to clipboard"
+    },
+    "editor": {
+        "uploadFile": "Upload file",
+        "clear": "Clear",
+        "charCount": "{count} chars",
+        "uploadFailed": "Could not read the file. Please paste the content manually.",
+        "uploadTooLarge": "File is too large. The limit is 1 MB."
+    },
+    "datetimePicker": {
+        "placeholder": "Pick a date and time",
+        "time": "Time",
+        "hours": "Hours",
+        "minutes": "Minutes",
+        "now": "Now",
+        "clear": "Clear",
+        "done": "Done"
     },
     "error": {
         "unknown": "Something went wrong. Please retry later.",
@@ -228,6 +319,16 @@
             },
             "password": {
                 "empty": "Password cannot be empty"
+            },
+            "certificate": {
+                "empty": "Certificate cannot be empty",
+                "invalid": "Certificate PEM format is invalid",
+                "invalidPrivateKey": "Certificate private key format is invalid",
+                "noPassphrase": "Encrypted private key requires a passphrase",
+                "invalidOrPassphrase": "Private key or passphrase is wrong",
+                "mismatch": "Certificate and private key do not match",
+                "parseError": "Failed to parse certificate",
+                "expiresImmutable": "X.509 expiration is bound to the certificate notAfter and cannot be changed manually"
             }
         },
         "platform": {

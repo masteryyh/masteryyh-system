@@ -23,6 +23,7 @@ import {
     SuccessBanner,
 } from "@/components/resource-ui";
 import { Button } from "@/components/ui/button";
+import { CodeEditor } from "@/components/code-editor";
 import {
     Dialog,
     DialogContent,
@@ -48,6 +49,7 @@ import type {
     AppPlatform,
     AppPlatformRequest,
     Credential,
+    InitSystem,
     PagedResponse,
     PlatformType,
 } from "@/types/api";
@@ -56,17 +58,16 @@ const pageSize = 10;
 const credentialPageSize = 1000;
 const controlClass =
     "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-const textAreaClass =
-    "min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 interface PlatformFormState {
     name: string;
     description: string;
     platformType: PlatformType;
+    initSystem: InitSystem;
     dockerHost: string;
-    systemdSSHHost: string;
-    systemdSSHPort: string;
-    systemdSSHUsername: string;
+    sshHost: string;
+    sshPort: string;
+    sshUsername: string;
     credentialId: string;
     hostKeys: string;
 }
@@ -74,11 +75,12 @@ interface PlatformFormState {
 const emptyForm: PlatformFormState = {
     name: "",
     description: "",
-    platformType: "SYSTEMD",
+    platformType: "HOST",
+    initSystem: "SYSTEMD",
     dockerHost: "tcp://",
-    systemdSSHHost: "",
-    systemdSSHPort: "22",
-    systemdSSHUsername: "",
+    sshHost: "",
+    sshPort: "22",
+    sshUsername: "",
     credentialId: "",
     hostKeys: "",
 };
@@ -187,10 +189,11 @@ export function PlatformsPage() {
             name: platform.name,
             description: platform.description ?? "",
             platformType: platform.platformType,
+            initSystem: platform.initSystem ?? "SYSTEMD",
             dockerHost: platform.dockerHost ?? "tcp://",
-            systemdSSHHost: platform.systemdSSHHost ?? "",
-            systemdSSHPort: String(platform.systemdSSHPort ?? 22),
-            systemdSSHUsername: platform.systemdSSHUsername ?? "",
+            sshHost: platform.sshHost ?? "",
+            sshPort: String(platform.sshPort ?? 22),
+            sshUsername: platform.sshUsername ?? "",
             credentialId: platform.credentialId ?? "",
             hostKeys: platform.hostKeys?.join("\n") ?? "",
         });
@@ -222,9 +225,10 @@ export function PlatformsPage() {
         }
         return {
             ...base,
-            systemdSSHHost: form.systemdSSHHost.trim(),
-            systemdSSHPort: Number(form.systemdSSHPort || 22),
-            systemdSSHUsername: form.systemdSSHUsername.trim(),
+            initSystem: form.initSystem,
+            sshHost: form.sshHost.trim(),
+            sshPort: Number(form.sshPort || 22),
+            sshUsername: form.sshUsername.trim(),
             credentialId: form.credentialId || null,
             hostKeys: form.hostKeys
                 .split("\n")
@@ -426,8 +430,8 @@ export function PlatformsPage() {
                                         )
                                     }
                                 >
-                                    <option value="SYSTEMD">
-                                        {t("platforms.type.SYSTEMD")}
+                                    <option value="HOST">
+                                        {t("platforms.type.HOST")}
                                     </option>
                                     <option value="DOCKER">
                                         {t("platforms.type.DOCKER")}
@@ -458,6 +462,29 @@ export function PlatformsPage() {
                             ) : (
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <Field
+                                        label={t("platforms.form.initSystem")}
+                                        htmlFor="init-system"
+                                    >
+                                        <select
+                                            id="init-system"
+                                            className={controlClass}
+                                            value={form.initSystem}
+                                            onChange={(event) =>
+                                                updateForm(
+                                                    "initSystem",
+                                                    event.target.value as InitSystem,
+                                                )
+                                            }
+                                        >
+                                            <option value="SYSTEMD">
+                                                {t("platforms.initSystem.SYSTEMD")}
+                                            </option>
+                                            <option value="OPENRC">
+                                                {t("platforms.initSystem.OPENRC")}
+                                            </option>
+                                        </select>
+                                    </Field>
+                                    <Field
                                         label={t("platforms.form.sshHost")}
                                         htmlFor="ssh-host"
                                     >
@@ -467,10 +494,10 @@ export function PlatformsPage() {
                                             placeholder={t(
                                                 "platforms.form.sshHostPlaceholder",
                                             )}
-                                            value={form.systemdSSHHost}
+                                            value={form.sshHost}
                                             onChange={(event) =>
                                                 updateForm(
-                                                    "systemdSSHHost",
+                                                    "sshHost",
                                                     event.target.value,
                                                 )
                                             }
@@ -486,10 +513,10 @@ export function PlatformsPage() {
                                             min={1}
                                             max={65535}
                                             required
-                                            value={form.systemdSSHPort}
+                                            value={form.sshPort}
                                             onChange={(event) =>
                                                 updateForm(
-                                                    "systemdSSHPort",
+                                                    "sshPort",
                                                     event.target.value,
                                                 )
                                             }
@@ -505,10 +532,10 @@ export function PlatformsPage() {
                                             placeholder={t(
                                                 "platforms.form.sshUsernamePlaceholder",
                                             )}
-                                            value={form.systemdSSHUsername}
+                                            value={form.sshUsername}
                                             onChange={(event) =>
                                                 updateForm(
-                                                    "systemdSSHUsername",
+                                                    "sshUsername",
                                                     event.target.value,
                                                 )
                                             }
@@ -554,20 +581,19 @@ export function PlatformsPage() {
                                             )}
                                             htmlFor="host-keys"
                                         >
-                                            <textarea
+                                            <CodeEditor
                                                 id="host-keys"
-                                                className={textAreaClass}
-                                                spellCheck={false}
-                                                placeholder={t(
-                                                    "platforms.form.hostKeysPlaceholder",
-                                                )}
+                                                language="pem"
+                                                height={160}
                                                 value={form.hostKeys}
-                                                onChange={(event) =>
+                                                onChange={(next) =>
                                                     updateForm(
                                                         "hostKeys",
-                                                        event.target.value,
+                                                        next,
                                                     )
                                                 }
+                                                accept=".pub,text/plain"
+                                                onUploadError={notify.error}
                                             />
                                         </Field>
                                     </div>
@@ -664,7 +690,7 @@ function PlatformRow({
     const endpoint =
         platform.platformType === "DOCKER"
             ? platform.dockerHost
-            : `${platform.systemdSSHUsername}@${platform.systemdSSHHost}:${platform.systemdSSHPort}`;
+            : `${platform.sshUsername}@${platform.sshHost}:${platform.sshPort}`;
 
     return (
         <tr className="transition-colors hover:bg-muted/25">
@@ -689,6 +715,11 @@ function PlatformRow({
             <td className="px-4 py-3">
                 <p className="font-mono text-xs font-medium">
                     {t(`platforms.type.${platform.platformType}`)}
+                    {platform.platformType === "HOST" && platform.initSystem ? (
+                        <span className="ml-1 text-muted-foreground">
+                            · {t(`platforms.initSystem.${platform.initSystem}`)}
+                        </span>
+                    ) : null}
                 </p>
                 <p
                     className="mt-1 max-w-64 truncate font-mono text-xs text-muted-foreground"

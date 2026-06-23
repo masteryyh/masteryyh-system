@@ -10,7 +10,7 @@
 
 - **凭据管理（Credential）** —— 集中保管访问远程主机所需的 SSH 私钥/公钥、口令等敏感凭据。
 - **应用平台管理（App Platform）** —— 登记并连接被纳管的「应用平台」，即运行应用的目标主机。每个平台以两种方式之一运行应用：
-  - `SYSTEMD` —— 通过 SSH 连接主机，管理 systemd 托管的应用；
+  - `HOST` —— 通过 SSH 连接主机，管理主机 init system 托管的应用；主机按 init system 进一步区分（`SYSTEMD` / `OPENRC`，后者用于 Alpine Linux / OpenWRT 等轻量化系统）；
   - `DOCKER` —— 通过 docker-java 连接 Docker daemon，管理容器化应用。
 
 > 写文档或代码时请记住：这是一个**会长期扩展**的系统，新增模块应复用现有的分包结构、统一响应、软删除、分页等既有约定，保持风格一致。
@@ -63,7 +63,7 @@ masteryyh-system/
 - **PostgreSQL**（运行时驱动）—— 使用 `uuidv7()` 主键、`jsonb` 列、`@SQLDelete`/`@SQLRestriction` 软删除
 - **Redis / Redisson 4.5**（`redisson.yaml` 配置单机连接）
 - **Spring Security + nimbus-jose-jwt** —— 无状态 JWT 鉴权
-- **sshj 0.38** —— SSH 连接 systemd 主机；**docker-java 3.7.1** —— 连接 Docker daemon
+- **sshj 0.38** —— SSH 连接主机（systemd / OpenRC）；**docker-java 3.7.1** —— 连接 Docker daemon
 - **BouncyCastle** —— SSH 密钥处理；**Lombok**
 - 构建插件包含 GraalVM native（`org.graalvm.buildtools.native`）
 
@@ -78,13 +78,13 @@ masteryyh-system/
 
 - **`AppPlatform`**（表 `app_platform`）—— 一个被纳管的目标主机/平台。`platformType` 决定纳管方式：
   - `DOCKER`：使用 `dockerHost` 连接 Docker daemon；
-  - `SYSTEMD`：使用 `systemdSSHHost/Port/Username` + `credentialId` 通过 SSH 连接；`hostKeys`（jsonb）保存已知主机公钥用于校验。
+  - `HOST`：使用 `sshHost/Port/Username` + `credentialId` 通过 SSH 连接；`initSystem`（`SYSTEMD` / `OPENRC`）决定探活命令；`hostKeys`（jsonb）保存已知主机公钥用于校验。
 - **`Credential`**（表 `credentials`）—— 凭据，`credentialType` ∈ `SSH_PRIVATE_KEY` / `SSH_PUBLIC_KEY` / `TEXT_PASSWORD`；SSH 私钥及 passphrase 等敏感字段为不可更新（`updatable = false`），`sshKeyInfo`（jsonb）保存解析出的密钥元信息。
 - **`GatewayConfig`**（表 `gateway_config`）—— 网关配置实体（仓库已存在，属于规划中的网关能力，尚未暴露完整 CRUD）。
 
 ### 连接管理层（`platform`）
 
-- `SSHManager` / `DockerManager` 在 `@PostConstruct` 时从数据库加载对应类型的平台，用**虚拟线程**并行建立连接，维护 `clients`、`platformStatuses`、`readyCount` 等并发结构，供 `AppPlatformService` 在增删平台时同步刷新连接。
+- `SSHManager` / `DockerManager` 在 `@PostConstruct` 时从数据库加载对应类型的平台，用**虚拟线程**并行建立连接，维护 `clients`、`platformStatuses`、`readyCount` 等并发结构，供 `AppPlatformService` 在增删平台时同步刷新连接。`SSHManager` 在 `createClient` 建连成功后以及每次 `isHealthy` 维护时，按主机 `initSystem` 探测对应 init system（systemd：`systemctl is-system-running`，running/degraded 视为健康；OpenRC：`rc-status`，exit 0 视为健康），探测失败则判定主机不健康并触发重连。
 - `DatabaseHostKeyVerifier` 实现 SSH 首次连接的 host key 校验，并将新 host key 持久化到 `app_platform.host_keys`。
 
 ## 关键约定（务必遵守）

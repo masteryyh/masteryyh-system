@@ -20,7 +20,14 @@ export interface PagedResponse<T> {
 export type CredentialType =
     | "SSH_PRIVATE_KEY"
     | "SSH_PUBLIC_KEY"
-    | "TEXT_PASSWORD";
+    | "TEXT_PASSWORD"
+    | "X509_CERTIFICATE";
+
+export type CredentialStatus =
+    | "ACTIVE"
+    | "IN_USE"
+    | "EXPIRING_SOON"
+    | "EXPIRED";
 
 export type SSHKeyType = "RSA" | "DSA" | "ECDSA" | "ED25519";
 
@@ -31,6 +38,22 @@ export interface SSHKeyInfo {
     fingerprint: string;
 }
 
+export interface CertificateInfo {
+    subject: string;
+    subjectDn: string;
+    issuer: string;
+    issuerDn: string;
+    serialNumber: string;
+    signatureAlgorithm: string;
+    publicKeyAlgorithm: string;
+    publicKeyBitLength: number;
+    notBefore: string;
+    notAfter: string;
+    fingerprintSha256: string;
+    sans: string[];
+    selfSigned: boolean;
+}
+
 export interface Credential {
     id: string;
     name: string;
@@ -38,6 +61,9 @@ export interface Credential {
     credentialType: CredentialType;
     sshPublicKey: string | null;
     sshKeyInfo: SSHKeyInfo | null;
+    certificateInfo: CertificateInfo | null;
+    expiresAt: string | null;
+    status: CredentialStatus;
     createdAt: string;
     updatedAt: string;
 }
@@ -50,24 +76,32 @@ export interface AddCredentialRequest {
     sshPrivateKey?: string;
     sshPrivateKeyPassphrase?: string;
     password?: string;
+    certificate?: string;
+    certificatePrivateKey?: string;
+    certificatePrivateKeyPassphrase?: string;
+    expiresAt?: string | null;
 }
 
 export interface UpdateCredentialRequest {
     name: string;
     description: string;
+    expiresAt?: string | null;
 }
 
-export type PlatformType = "SYSTEMD" | "DOCKER";
+export type PlatformType = "HOST" | "DOCKER";
+
+export type InitSystem = "SYSTEMD" | "OPENRC";
 
 export interface AppPlatform {
     id: string;
     name: string;
     description: string | null;
     platformType: PlatformType;
+    initSystem: InitSystem | null;
     dockerHost: string | null;
-    systemdSSHHost: string | null;
-    systemdSSHPort: number | null;
-    systemdSSHUsername: string | null;
+    sshHost: string | null;
+    sshPort: number | null;
+    sshUsername: string | null;
     credentialId: string | null;
     hostKeys: string[] | null;
     online: boolean;
@@ -79,10 +113,11 @@ export interface AppPlatformRequest {
     name: string;
     description: string;
     platformType?: PlatformType;
+    initSystem?: InitSystem | null;
     dockerHost?: string | null;
-    systemdSSHHost?: string | null;
-    systemdSSHPort?: number | null;
-    systemdSSHUsername?: string | null;
+    sshHost?: string | null;
+    sshPort?: number | null;
+    sshUsername?: string | null;
     credentialId?: string | null;
     hostKeys?: string[] | null;
 }

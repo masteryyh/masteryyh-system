@@ -22,7 +22,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.type.SqlTypes;
+import win.masteryyh.masteryyhsystem.base.utils.crypto.CertificateInfo;
 import win.masteryyh.masteryyhsystem.base.utils.crypto.SSHKeyInfo;
+import win.masteryyh.masteryyhsystem.model.dto.CredentialStatus;
 import win.masteryyh.masteryyhsystem.model.dto.CredentialType;
 
 import java.time.LocalDateTime;
@@ -69,6 +71,27 @@ public class Credential {
 
     @Column(name = "text_password")
     private String textPassword;
+
+    @Column(name = "certificate", updatable = false, columnDefinition = "text")
+    private String certificate;
+
+    @Column(name = "certificate_private_key", updatable = false, columnDefinition = "text")
+    private String certificatePrivateKey;
+
+    @Column(name = "certificate_private_key_passphrase", updatable = false)
+    private String certificatePrivateKeyPassphrase;
+
+    @Column(name = "certificate_info", columnDefinition = "jsonb", updatable = false)
+    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private CertificateInfo certificateInfo;
+
+    @Column(name = "expires_at", columnDefinition = "timestamp")
+    private LocalDateTime expiresAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(32) not null default 'ACTIVE'")
+    private CredentialStatus status;
 
     @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "timestamp not null default current_timestamp")

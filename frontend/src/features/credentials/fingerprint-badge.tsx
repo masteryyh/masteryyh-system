@@ -41,18 +41,6 @@ export function FingerprintBadge({ fingerprint }: { fingerprint: string }) {
         [fingerprint],
     );
 
-    // 把指纹拆成 SHA256: 前缀 + 摘要主体；摘要按 4 字符分组以便像车牌一样扫读
-    const { prefix, chunked } = useMemo(() => {
-        const colon = formatted.indexOf(":");
-        if (colon < 0) {
-            return { prefix: "", chunked: formatted };
-        }
-        const head = formatted.slice(0, colon + 1);
-        const body = formatted.slice(colon + 1);
-        const groups = body.match(/.{1,4}/g) ?? [body];
-        return { prefix: head, chunked: groups.join(" ") };
-    }, [formatted]);
-
     // 使用计数器而不是 boolean，方便用户连续点击时每次都重置 1.5s 倒计时
     const [openByHover, setOpenByHover] = useState(false);
     const [copyTick, setCopyTick] = useState(0);
@@ -116,8 +104,7 @@ export function FingerprintBadge({ fingerprint }: { fingerprint: string }) {
             >
                 <div className="flex flex-col gap-1">
                     <p className="break-all font-mono text-[0.7rem] leading-relaxed tracking-wide">
-                        <span className="opacity-60">{prefix}</span>
-                        <span>{chunked}</span>
+                        {formatted}
                     </p>
                     <p
                         aria-live="polite"

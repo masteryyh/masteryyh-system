@@ -47,7 +47,7 @@ public class DockerManager extends AbstractPlatformManager<DockerClient> {
     }
 
     @Override
-    protected boolean isHealthy(DockerClient client) {
+    protected boolean isHealthy(DockerClient client, AppPlatform platform) {
         try {
             client.pingCmd().exec();
             return true;

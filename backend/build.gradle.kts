@@ -39,6 +39,7 @@ dependencies {
     implementation("com.github.docker-java:docker-java-transport-zerodep:3.7.1")
     implementation("org.redisson:redisson-spring-boot-starter:4.5.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.84")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("io.hypersistence:hypersistence-utils-hibernate-73:3.15.3")
     implementation("com.hierynomus:sshj:0.38.0")
     compileOnly("org.projectlombok:lombok")

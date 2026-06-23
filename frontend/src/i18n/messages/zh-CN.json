@@ -8,6 +8,7 @@
         "confirming": "处理中…",
         "edit": "编辑",
         "add": "新增",
+        "detail": "详情",
         "actions": "操作",
         "previousPage": "上一页",
         "nextPage": "下一页",
@@ -77,19 +78,34 @@
             "description": "描述",
             "type": "类型",
             "fingerprint": "公钥指纹",
+            "status": "状态",
+            "expiresAt": "过期时间",
             "updatedAt": "更新时间",
             "actions": "操作"
         },
         "type": {
             "SSH_PRIVATE_KEY": "SSH 私钥",
             "SSH_PUBLIC_KEY": "SSH 公钥",
-            "TEXT_PASSWORD": "文本密码"
+            "TEXT_PASSWORD": "文本密码",
+            "X509_CERTIFICATE": "X.509 证书"
+        },
+        "status": {
+            "ACTIVE": "可用",
+            "IN_USE": "使用中",
+            "EXPIRING_SOON": "即将过期",
+            "EXPIRED": "已过期"
+        },
+        "expiry": {
+            "none": "永不过期",
+            "validUntil": "至 {date}",
+            "expiringSoon": "{days} 天后到期",
+            "expired": "{date} 已过期"
         },
         "form": {
             "createTitle": "新增凭据",
             "editTitle": "编辑凭据",
             "createDescription": "添加一条新的访问凭据。",
-            "editDescription": "更新该凭据的名称和描述。SSH 密钥与口令一旦创建不可修改。",
+            "editDescription": "更新该凭据的名称和描述。SSH 密钥、证书与口令一旦创建不可修改。",
             "name": "名称",
             "namePlaceholder": "如：homelab-root",
             "descriptionField": "描述",
@@ -103,8 +119,62 @@
             "sshPublicKeyPlaceholder": "如：ssh-ed25519 AAAA... user@host",
             "password": "口令",
             "passwordPlaceholder": "请输入文本口令",
+            "certificate": "证书（X.509 PEM）",
+            "certificatePlaceholder": "粘贴 -----BEGIN CERTIFICATE----- 开头的证书或证书链",
+            "certificatePrivateKey": "私钥（PKCS#8 / PKCS#1 / SEC1）",
+            "certificatePrivateKeyPlaceholder": "粘贴 -----BEGIN [...] PRIVATE KEY----- 开头的 PEM 私钥",
+            "certificatePassphrase": "Passphrase（可选）",
+            "certificatePassphrasePlaceholder": "若私钥已加密，请填写",
+            "expiresAt": "过期时间（可选）",
+            "expiresAtPlaceholder": "选择过期日期与时间",
+            "expiresAtHint": "留空表示永不过期，到期后凭据将自动标记为 Expired。",
+            "expiresAtCertHint": "X.509 凭据的过期时间由证书 notAfter 自动绑定：{date}，无法手动修改。",
             "submitCreate": "创建",
             "submitEdit": "保存"
+        },
+        "cert": {
+            "validUntil": "至 {date}",
+            "expiringSoon": "{days} 天后到期",
+            "expired": "{date} 已过期",
+            "commonName": "通用名 (CN)",
+            "distinguishedName": "可分辨名称 (DN)",
+            "selfSigned": "自签名",
+            "validFrom": "生效时间",
+            "validTo": "失效时间",
+            "publicKey": "公钥",
+            "signatureAlgorithm": "签名算法",
+            "serialNumber": "序列号",
+            "fingerprint": "SHA-256 指纹",
+            "san": "主体备用名称 (SAN)",
+            "sanEmpty": "无"
+        },
+        "detail": {
+            "basics": "基本信息",
+            "overview": "凭据概览",
+            "description": "描述",
+            "sshKey": "密钥信息",
+            "password": "口令",
+            "lifecycle": "生命周期",
+            "status": "状态",
+            "expiresAt": "过期时间",
+            "subject": "主体 (Subject)",
+            "issuer": "签发者 (Issuer)",
+            "validity": "有效期",
+            "cryptography": "密码学参数",
+            "sans": "Subject Alternative Names",
+            "id": "ID",
+            "createdAt": "创建时间",
+            "updatedAt": "更新时间",
+            "keyType": "类型",
+            "keyBitLength": "位数",
+            "curveName": "曲线",
+            "fingerprint": "指纹",
+            "publicKey": "公钥内容",
+            "protectedSecret": "受保护的口令",
+            "encryptedAtRest": "已加密存储，页面不会下发原始内容",
+            "securityState": "安全状态",
+            "passwordLocked": "口令已加密存储，出于安全考虑不可在页面中查看。如需更新，请删除并重新创建该凭据。",
+            "copy": "复制"
         },
         "success": {
             "created": "凭据已创建",
@@ -142,7 +212,7 @@
             "actions": "操作"
         },
         "type": {
-            "SYSTEMD": "Systemd 主机",
+            "HOST": "主机",
             "DOCKER": "Docker 平台"
         },
         "status": {
@@ -171,7 +241,8 @@
             "hostKeys": "已知 host keys",
             "hostKeysPlaceholder": "每行一条 host key，可留空让首次连接时自动学习",
             "submitCreate": "创建",
-            "submitEdit": "保存"
+            "submitEdit": "保存",
+            "initSystem": "Init system"
         },
         "success": {
             "created": "平台已创建",
@@ -187,6 +258,10 @@
             "loadFailed": "平台列表加载失败",
             "saveFailed": "平台保存失败",
             "deleteFailed": "平台删除失败"
+        },
+        "initSystem": {
+            "SYSTEMD": "systemd",
+            "OPENRC": "OpenRC"
         }
     },
     "fingerprint": {
@@ -195,6 +270,22 @@
         "copyFailed": "复制失败，请手动选择并复制",
         "ariaCopy": "复制指纹 {fingerprint}",
         "ariaCopied": "指纹已复制到剪贴板"
+    },
+    "editor": {
+        "uploadFile": "上传文件",
+        "clear": "清空",
+        "charCount": "{count} 字符",
+        "uploadFailed": "文件读取失败，请改为手动粘贴",
+        "uploadTooLarge": "文件过大，最大支持 1 MB"
+    },
+    "datetimePicker": {
+        "placeholder": "选择日期与时间",
+        "time": "时间",
+        "hours": "小时",
+        "minutes": "分钟",
+        "now": "现在",
+        "clear": "清除",
+        "done": "完成"
     },
     "error": {
         "unknown": "发生未知错误，请稍后重试",
@@ -228,6 +319,16 @@
             },
             "password": {
                 "empty": "密码不能为空"
+            },
+            "certificate": {
+                "empty": "证书内容不能为空",
+                "invalid": "证书 PEM 格式无效",
+                "invalidPrivateKey": "证书私钥格式无效",
+                "noPassphrase": "私钥已加密，请提供 passphrase",
+                "invalidOrPassphrase": "私钥或 passphrase 不正确",
+                "mismatch": "证书与私钥不匹配",
+                "parseError": "证书解析失败",
+                "expiresImmutable": "X.509 凭据的过期时间由证书 notAfter 决定，不能手动修改"
             }
         },
         "platform": {

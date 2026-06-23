@@ -33,3 +33,6 @@ system:
     username: admin
     password: abc123456
     email: admin@example.com
+  credential:
+    # 距离过期不足该天数时凭据状态进入 EXPIRING_SOON。
+    expiring-soon-days: 30

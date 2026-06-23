@@ -5,7 +5,16 @@ import {
     type FormEvent,
     type ReactNode,
 } from "react";
-import { KeyRound, MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+    Eye,
+    FileBadge,
+    KeyRound,
+    Info,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash2,
+} from "lucide-react";
 
 import {
     EmptyState,
@@ -16,6 +25,8 @@ import {
     SuccessBanner,
 } from "@/components/resource-ui";
 import { Button } from "@/components/ui/button";
+import { CodeEditor } from "@/components/code-editor";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
     Dialog,
     DialogContent,
@@ -28,6 +39,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -35,7 +47,10 @@ import { Label } from "@/components/ui/label";
 import { useApi } from "@/hooks/use-api";
 import { useNotify } from "@/hooks/use-notify";
 import { useTranslation } from "@/hooks/use-translation";
-import { formatDate } from "@/lib/formatters";
+import { formatCurveName, formatDate, formatPublicKeyAlgorithm, formatSshKeyType } from "@/lib/formatters";
+import { CredentialDetailDialog } from "@/features/credentials/credential-detail-dialog";
+import { CredentialStatusBadge } from "@/features/credentials/credential-status-badge";
+import { ExpiryIndicator } from "@/features/credentials/expiry-indicator";
 import { FingerprintBadge } from "@/features/credentials/fingerprint-badge";
 import type {
     AddCredentialRequest,
@@ -48,13 +63,12 @@ import type {
 const pageSize = 10;
 const controlClass =
     "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-const textAreaClass =
-    "min-h-24 w-full resize-y rounded-lg border border-input bg-transparent px-2.5 py-2 font-mono text-sm outline-none placeholder:font-sans focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const credentialTypes: CredentialType[] = [
     "SSH_PRIVATE_KEY",
     "SSH_PUBLIC_KEY",
     "TEXT_PASSWORD",
+    "X509_CERTIFICATE",
 ];
 
 interface CredentialFormState {
@@ -65,6 +79,10 @@ interface CredentialFormState {
     sshPrivateKey: string;
     sshPrivateKeyPassphrase: string;
     password: string;
+    certificate: string;
+    certificatePrivateKey: string;
+    certificatePrivateKeyPassphrase: string;
+    expiresAt: Date | null;
 }
 
 const emptyForm: CredentialFormState = {
@@ -75,7 +93,22 @@ const emptyForm: CredentialFormState = {
     sshPrivateKey: "",
     sshPrivateKeyPassphrase: "",
     password: "",
+    certificate: "",
+    certificatePrivateKey: "",
+    certificatePrivateKeyPassphrase: "",
+    expiresAt: null,
 };
+
+/**
+ * 与后端 LocalDateTime 对齐：写出 `yyyy-MM-ddTHH:mm:ss`（不带时区后缀，Jackson 默认按本地解析）。
+ */
+function formatLocalDateTime(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    );
+}
 
 export function CredentialsPage() {
     const api = useApi();
@@ -96,6 +129,7 @@ export function CredentialsPage() {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState<Credential | null>(null);
     const [deleteError, setDeleteError] = useState<unknown>(null);
+    const [detailing, setDetailing] = useState<Credential | null>(null);
 
     const loadCredentials = useCallback(async () => {
         setLoading(true);
@@ -133,6 +167,7 @@ export function CredentialsPage() {
             name: credential.name,
             description: credential.description ?? "",
             credentialType: credential.credentialType,
+            expiresAt: credential.expiresAt ? new Date(credential.expiresAt) : null,
         });
         setFormError(null);
         setFormOpen(true);
@@ -156,6 +191,12 @@ export function CredentialsPage() {
                     name: form.name.trim(),
                     description: form.description.trim(),
                 };
+                // X509 凭据的 expiresAt 由证书 notAfter 决定，不再下发。
+                if (editing.credentialType !== "X509_CERTIFICATE") {
+                    body.expiresAt = form.expiresAt
+                        ? formatLocalDateTime(form.expiresAt)
+                        : null;
+                }
                 await api.credentials.update(editing.id, body);
                 setSuccessKey("credentials.success.updated");
                 notify.success("credentials.success.updated");
@@ -171,8 +212,20 @@ export function CredentialsPage() {
                         form.sshPrivateKeyPassphrase;
                 } else if (form.credentialType === "SSH_PUBLIC_KEY") {
                     body.sshPublicKey = form.sshPublicKey.trim();
+                } else if (form.credentialType === "X509_CERTIFICATE") {
+                    body.certificate = form.certificate.trim();
+                    body.certificatePrivateKey =
+                        form.certificatePrivateKey.trim();
+                    body.certificatePrivateKeyPassphrase =
+                        form.certificatePrivateKeyPassphrase;
                 } else {
                     body.password = form.password;
+                }
+                // 非 X509 凭据允许选填过期时间；X509 服务端忽略入参并写入证书 notAfter。
+                if (form.credentialType !== "X509_CERTIFICATE") {
+                    body.expiresAt = form.expiresAt
+                        ? formatLocalDateTime(form.expiresAt)
+                        : null;
                 }
                 await api.credentials.create(body);
                 setSuccessKey("credentials.success.created");
@@ -205,6 +258,8 @@ export function CredentialsPage() {
         }
     }
 
+    const isCertificate = form.credentialType === "X509_CERTIFICATE";
+
     return (
         <div className="space-y-6">
             <PageHeader
@@ -235,7 +290,7 @@ export function CredentialsPage() {
                     />
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[880px] text-left text-sm">
+                        <table className="w-full min-w-[1040px] text-left text-sm">
                             <thead className="border-b bg-muted/45 text-xs text-muted-foreground">
                                 <tr>
                                     <th className="px-4 py-3 font-medium">
@@ -245,10 +300,13 @@ export function CredentialsPage() {
                                         {t("credentials.columns.type")}
                                     </th>
                                     <th className="px-4 py-3 font-medium">
-                                        {t("credentials.columns.description")}
+                                        {t("credentials.columns.fingerprint")}
                                     </th>
                                     <th className="px-4 py-3 font-medium">
-                                        {t("credentials.columns.fingerprint")}
+                                        {t("credentials.columns.status")}
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        {t("credentials.columns.expiresAt")}
                                     </th>
                                     <th className="px-4 py-3 font-medium">
                                         {t("credentials.columns.updatedAt")}
@@ -262,6 +320,7 @@ export function CredentialsPage() {
                                         key={credential.id}
                                         credential={credential}
                                         onEdit={() => openEdit(credential)}
+                                        onDetails={() => setDetailing(credential)}
                                         onDelete={() => {
                                             setDeleteError(null);
                                             setDeleting(credential);
@@ -357,6 +416,46 @@ export function CredentialsPage() {
                                 </select>
                             </Field>
 
+                            {/* 过期时间：非 X509 显示 DateTimePicker；X509 仅在编辑时显示只读提示 */}
+                            {isCertificate ? (
+                                editing ? (
+                                    <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/25 px-3 py-2.5 text-xs text-muted-foreground">
+                                        <Info className="mt-0.5 size-3.5 shrink-0" />
+                                        <span className="leading-relaxed">
+                                            {t(
+                                                "credentials.form.expiresAtCertHint",
+                                                {
+                                                    date: editing.expiresAt
+                                                        ? formatDate(
+                                                              editing.expiresAt,
+                                                          )
+                                                        : t("common.dash"),
+                                                },
+                                            )}
+                                        </span>
+                                    </div>
+                                ) : null
+                            ) : (
+                                <Field
+                                    label={t("credentials.form.expiresAt")}
+                                    htmlFor="credential-expires-at"
+                                    hint={t(
+                                        "credentials.form.expiresAtHint",
+                                    )}
+                                >
+                                    <DateTimePicker
+                                        id="credential-expires-at"
+                                        value={form.expiresAt}
+                                        onChange={(next) =>
+                                            updateForm("expiresAt", next)
+                                        }
+                                        placeholder={t(
+                                            "credentials.form.expiresAtPlaceholder",
+                                        )}
+                                    />
+                                </Field>
+                            )}
+
                             {!editing &&
                             form.credentialType === "SSH_PRIVATE_KEY" ? (
                                 <>
@@ -366,21 +465,18 @@ export function CredentialsPage() {
                                         )}
                                         htmlFor="ssh-private-key"
                                     >
-                                        <textarea
+                                        <CodeEditor
                                             id="ssh-private-key"
-                                            className={textAreaClass}
-                                            required
-                                            spellCheck={false}
-                                            placeholder={t(
-                                                "credentials.form.sshPrivateKeyPlaceholder",
-                                            )}
+                                            language="pem"
                                             value={form.sshPrivateKey}
-                                            onChange={(event) =>
+                                            onChange={(next) =>
                                                 updateForm(
                                                     "sshPrivateKey",
-                                                    event.target.value,
+                                                    next,
                                                 )
                                             }
+                                            accept=".key,.pem,.pub,text/plain"
+                                            onUploadError={notify.error}
                                         />
                                     </Field>
                                     <Field
@@ -413,21 +509,16 @@ export function CredentialsPage() {
                                     label={t("credentials.form.sshPublicKey")}
                                     htmlFor="ssh-public-key"
                                 >
-                                    <textarea
+                                    <CodeEditor
                                         id="ssh-public-key"
-                                        className={textAreaClass}
-                                        required
-                                        spellCheck={false}
-                                        placeholder={t(
-                                            "credentials.form.sshPublicKeyPlaceholder",
-                                        )}
+                                        language="pem"
+                                        height={160}
                                         value={form.sshPublicKey}
-                                        onChange={(event) =>
-                                            updateForm(
-                                                "sshPublicKey",
-                                                event.target.value,
-                                            )
+                                        onChange={(next) =>
+                                            updateForm("sshPublicKey", next)
                                         }
+                                        accept=".pub,.pem,text/plain"
+                                        onUploadError={notify.error}
                                     />
                                 </Field>
                             ) : null}
@@ -455,6 +546,74 @@ export function CredentialsPage() {
                                     />
                                 </Field>
                             ) : null}
+
+                            {!editing &&
+                            form.credentialType === "X509_CERTIFICATE" ? (
+                                <>
+                                    <Field
+                                        label={t(
+                                            "credentials.form.certificate",
+                                        )}
+                                        htmlFor="certificate"
+                                    >
+                                        <CodeEditor
+                                            id="certificate"
+                                            language="pem"
+                                            height={220}
+                                            value={form.certificate}
+                                            onChange={(next) =>
+                                                updateForm("certificate", next)
+                                            }
+                                            accept=".pem,.crt,.cer,text/plain"
+                                            onUploadError={notify.error}
+                                        />
+                                    </Field>
+                                    <Field
+                                        label={t(
+                                            "credentials.form.certificatePrivateKey",
+                                        )}
+                                        htmlFor="certificate-private-key"
+                                    >
+                                        <CodeEditor
+                                            id="certificate-private-key"
+                                            language="pem"
+                                            height={220}
+                                            value={form.certificatePrivateKey}
+                                            onChange={(next) =>
+                                                updateForm(
+                                                    "certificatePrivateKey",
+                                                    next,
+                                                )
+                                            }
+                                            accept=".key,.pem,text/plain"
+                                            onUploadError={notify.error}
+                                        />
+                                    </Field>
+                                    <Field
+                                        label={t(
+                                            "credentials.form.certificatePassphrase",
+                                        )}
+                                        htmlFor="certificate-passphrase"
+                                    >
+                                        <Input
+                                            id="certificate-passphrase"
+                                            type="password"
+                                            placeholder={t(
+                                                "credentials.form.certificatePassphrasePlaceholder",
+                                            )}
+                                            value={
+                                                form.certificatePrivateKeyPassphrase
+                                            }
+                                            onChange={(event) =>
+                                                updateForm(
+                                                    "certificatePrivateKeyPassphrase",
+                                                    event.target.value,
+                                                )
+                                            }
+                                        />
+                                    </Field>
+                                </>
+                            ) : null}
                         </div>
 
                         <ErrorBanner
@@ -480,6 +639,14 @@ export function CredentialsPage() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <CredentialDetailDialog
+                credential={detailing}
+                open={detailing !== null}
+                onOpenChange={(open) => {
+                    if (!open) setDetailing(null);
+                }}
+            />
 
             <Dialog
                 open={Boolean(deleting)}
@@ -530,23 +697,76 @@ export function CredentialsPage() {
 function CredentialRow({
     credential,
     onEdit,
+    onDetails,
     onDelete,
 }: {
     credential: Credential;
     onEdit: () => void;
+    onDetails: () => void;
     onDelete: () => void;
 }) {
     const { t } = useTranslation();
     const keyInfo = credential.sshKeyInfo;
+    const certInfo = credential.certificateInfo;
+    const isCertificate = credential.credentialType === "X509_CERTIFICATE";
+    const Icon = isCertificate ? FileBadge : KeyRound;
+
+    const descriptionFallback = (() => {
+        if (credential.description) return credential.description;
+        if (isCertificate && certInfo) {
+            const parts: string[] = [];
+            if (certInfo.subject) parts.push(certInfo.subject);
+            if (certInfo.publicKeyAlgorithm) {
+                const algo = formatPublicKeyAlgorithm(
+                    certInfo.publicKeyAlgorithm,
+                );
+                parts.push(
+                    certInfo.publicKeyBitLength > 0
+                        ? `${algo} · ${certInfo.publicKeyBitLength} bit`
+                        : algo,
+                );
+            }
+            return parts.length > 0 ? parts.join(" · ") : null;
+        }
+        if (keyInfo) {
+            const algo = formatSshKeyType(keyInfo.keyType);
+            const curve = formatCurveName(keyInfo.curveName);
+            const segments = [algo];
+            if (curve) segments.push(curve);
+            if (keyInfo.bitLength > 0) segments.push(`${keyInfo.bitLength} bit`);
+            return segments.join(" · ");
+        }
+        return null;
+    })();
+
+    const fingerprintCell = (() => {
+        if (isCertificate && certInfo) {
+            return <FingerprintBadge fingerprint={certInfo.fingerprintSha256} />;
+        }
+        if (keyInfo) {
+            return <FingerprintBadge fingerprint={keyInfo.fingerprint} />;
+        }
+        return (
+            <span className="text-xs text-muted-foreground">
+                {t("common.dash")}
+            </span>
+        );
+    })();
+
     return (
         <tr className="transition-colors hover:bg-muted/25">
             <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                     <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-background">
-                        <KeyRound className="size-4 text-muted-foreground" />
+                        <Icon className="size-4 text-muted-foreground" />
                     </span>
                     <div className="min-w-0">
                         <p className="font-medium">{credential.name}</p>
+                        {descriptionFallback ? (
+                            <p className="mt-0.5 max-w-72 truncate text-[11px] text-muted-foreground">
+                                {descriptionFallback}
+                            </p>
+                        ) : null}
                     </div>
                 </div>
             </td>
@@ -555,26 +775,19 @@ function CredentialRow({
                     {t(`credentials.type.${credential.credentialType}`)}
                 </span>
             </td>
-            <td className="px-4 py-3 text-xs text-muted-foreground">
-                <p className="max-w-72 truncate">
-                    {credential.description ||
-                        (keyInfo
-                            ? `${keyInfo.keyType}${
-                                  keyInfo.bitLength > 0
-                                      ? ` · ${keyInfo.bitLength} bit`
-                                      : ""
-                              }`
-                            : t("common.dash"))}
-                </p>
+            <td className="px-4 py-3">{fingerprintCell}</td>
+            <td className="px-4 py-3">
+                <CredentialStatusBadge status={credential.status} />
             </td>
             <td className="px-4 py-3">
-                {keyInfo ? (
-                    <FingerprintBadge fingerprint={keyInfo.fingerprint} />
-                ) : (
-                    <span className="text-xs text-muted-foreground">
-                        {t("common.dash")}
-                    </span>
-                )}
+                <div className="space-y-1">
+                    <ExpiryIndicator expiresAt={credential.expiresAt} />
+                    {credential.expiresAt ? (
+                        <p className="font-mono text-[10px] text-muted-foreground/80">
+                            {formatDate(credential.expiresAt)}
+                        </p>
+                    ) : null}
+                </div>
             </td>
             <td className="px-4 py-3 text-xs text-muted-foreground">
                 {formatDate(credential.updatedAt)}
@@ -589,7 +802,12 @@ function CredentialRow({
                             </span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuContent align="end" className="w-36">
+                        <DropdownMenuItem onClick={onDetails}>
+                            <Eye />
+                            {t("common.detail")}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={onEdit}>
                             <Pencil />
                             {t("common.edit")}
@@ -611,16 +829,21 @@ function CredentialRow({
 function Field({
     label,
     htmlFor,
+    hint,
     children,
 }: {
     label: string;
     htmlFor: string;
+    hint?: string;
     children: ReactNode;
 }) {
     return (
         <div className="space-y-2">
             <Label htmlFor={htmlFor}>{label}</Label>
             {children}
+            {hint ? (
+                <p className="text-[11px] text-muted-foreground">{hint}</p>
+            ) : null}
         </div>
     );
 }

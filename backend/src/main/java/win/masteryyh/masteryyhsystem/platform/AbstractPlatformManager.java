@@ -32,7 +32,7 @@ public abstract class AbstractPlatformManager<C> {
 
     protected abstract C createClient(AppPlatform platform) throws Exception;
 
-    protected abstract boolean isHealthy(C client);
+    protected abstract boolean isHealthy(C client, AppPlatform platform);
 
     protected abstract void closeClient(C client);
 
@@ -79,7 +79,7 @@ public abstract class AbstractPlatformManager<C> {
         for (Connection<C> conn : connections.values()) {
             conn.lock.lock();
             try {
-                if (conn.client != null && isHealthy(conn.client)) {
+                if (conn.client != null && isHealthy(conn.client, conn.platform)) {
                     conn.healthy = true;
                     continue;
                 }

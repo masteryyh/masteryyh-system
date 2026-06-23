@@ -81,7 +81,7 @@ export function ConsoleShell() {
                                 </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-semibold">
-                                        MasterYYH
+                                        masteryyh's homelab
                                     </span>
                                     <span className="truncate text-xs">
                                         {t("nav.console")}

@@ -20,4 +20,17 @@ public class GenericConsts {
                     + "(?:[\\t ]+[^\\r\\n]*)?"
                     + "\\z"
     );
+
+    public static final Pattern X509_CERTIFICATE_PEM = Pattern.compile(
+            "(?s)\\A\\s*" +
+                    "(?:-----BEGIN CERTIFICATE-----\\s+" +
+                    "[A-Za-z0-9+/=\\s]+" +
+                    "-----END CERTIFICATE-----\\s*)+\\z"
+    );
+
+    public static final Pattern X509_PRIVATE_KEY_PEM = Pattern.compile(
+            "(?s)\\A\\s*-----BEGIN (?:ENCRYPTED )?(?:RSA |EC )?PRIVATE KEY-----\\s+" +
+                    "[A-Za-z0-9+/=\\s:.,\\-]+" +
+                    "-----END (?:ENCRYPTED )?(?:RSA |EC )?PRIVATE KEY-----\\s*\\z"
+    );
 }

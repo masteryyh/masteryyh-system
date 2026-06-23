@@ -7,10 +7,11 @@ import java.util.UUID;
 
 public record UpdateAppPlatformDto(@NotBlank(message = "validation.platform.name.notBlank") String name,
                                    String description,
+                                   InitSystem initSystem,
                                    String dockerHost,
-                                   String systemdSSHHost,
-                                   Integer systemdSSHPort,
-                                   String systemdSSHUsername,
+                                   String sshHost,
+                                   Integer sshPort,
+                                   String sshUsername,
                                    UUID credentialId,
                                    List<String> hostKeys) {
 }

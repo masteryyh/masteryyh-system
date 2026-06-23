@@ -15,17 +15,26 @@ import win.masteryyh.masteryyhsystem.base.utils.DatabaseHostKeyVerifier;
 import win.masteryyh.masteryyhsystem.model.AppPlatform;
 import win.masteryyh.masteryyhsystem.model.Credential;
 import win.masteryyh.masteryyhsystem.model.dto.CredentialType;
+import win.masteryyh.masteryyhsystem.model.dto.InitSystem;
 import win.masteryyh.masteryyhsystem.repository.AppPlatformRepository;
 import win.masteryyh.masteryyhsystem.repository.CredentialRepository;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class SSHManager extends AbstractPlatformManager<SSHClient> {
+    private static final long PROBE_TIMEOUT_SECONDS = 5;
+
+    private static final Set<String> SYSTEMD_HEALTHY_STATES = Set.of("running", "degraded");
+
     private final AppPlatformRepository platformRepository;
+
     private final DatabaseHostKeyVerifier hostKeyVerifier;
+
     private final CredentialRepository credentialRepository;
 
     public SSHManager(AppPlatformRepository platformRepository,
@@ -38,7 +47,7 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
 
     @Override
     protected List<AppPlatform> loadPlatforms() {
-        return platformRepository.findSystemDPlatforms();
+        return platformRepository.findHostPlatforms();
     }
 
     @Override
@@ -47,9 +56,10 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
         try {
             AuthMethod authMethod = buildAuthMethod(sshClient, platform);
             sshClient.addHostKeyVerifier(hostKeyVerifier);
-            sshClient.connect(platform.getSystemdSSHHost(), platform.getSystemdSSHPort());
-            sshClient.auth(platform.getSystemdSSHUsername(), authMethod);
-            testExecute(sshClient, platform.getName(), platform.getSystemdSSHUsername());
+            sshClient.connect(platform.getSshHost(), platform.getSshPort());
+            sshClient.auth(platform.getSshUsername(), authMethod);
+            testExecute(sshClient, platform.getName(), platform.getSshUsername());
+            probeInitSystem(sshClient, platform);
             return sshClient;
         } catch (Exception e) {
             try {
@@ -61,8 +71,11 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
     }
 
     @Override
-    protected boolean isHealthy(SSHClient client) {
-        return client.isConnected() && client.isAuthenticated();
+    protected boolean isHealthy(SSHClient client, AppPlatform platform) {
+        if (!client.isConnected() || !client.isAuthenticated()) {
+            return false;
+        }
+        return probeInitSystem(client, platform);
     }
 
     @Override
@@ -101,6 +114,46 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
                 logger.warn("Username returned by platform {} is not the same as DB record: returned {}, expected {}",
                         platformName, output, expectedName);
             }
+        }
+    }
+
+    private boolean probeInitSystem(SSHClient client, AppPlatform platform) {
+        InitSystem initSystem = platform.getInitSystem();
+        if (initSystem == null) {
+            logger.warn("Platform {} has no initSystem configured, skip probe", platform.getName());
+            return true;
+        }
+        try {
+            return switch (initSystem) {
+                case SYSTEMD -> probeSystemd(client, platform);
+                case OPENRC -> probeOpenrc(client, platform);
+            };
+        } catch (Exception e) {
+            logger.warn("Failed to probe init system {} for platform {}: {}",
+                    initSystem, platform.getName(), e.getMessage());
+            return false;
+        }
+    }
+
+    private boolean probeSystemd(SSHClient client, AppPlatform platform) throws IOException {
+        try (Session session = client.startSession()) {
+            Session.Command cmd = session.exec("systemctl is-system-running");
+            cmd.join(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            String output = new String(cmd.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            String state = output.split("\\s+", 2)[0];
+            logger.debug("Platform {} systemctl is-system-running -> state={}, exit={}",
+                    platform.getName(), state, cmd.getExitStatus());
+            return SYSTEMD_HEALTHY_STATES.contains(state);
+        }
+    }
+
+    private boolean probeOpenrc(SSHClient client, AppPlatform platform) throws IOException {
+        try (Session session = client.startSession()) {
+            Session.Command cmd = session.exec("rc-status");
+            cmd.join(PROBE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Integer exit = cmd.getExitStatus();
+            logger.debug("Platform {} rc-status -> exit={}", platform.getName(), exit);
+            return exit != null && exit == 0;
         }
     }
 }
