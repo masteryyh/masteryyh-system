@@ -35,6 +35,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.github.docker-java:docker-java-core:3.7.1")
     implementation("com.github.docker-java:docker-java-transport-zerodep:3.7.1")
     implementation("org.redisson:redisson-spring-boot-starter:4.5.0")

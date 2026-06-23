@@ -11,18 +11,23 @@ import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
+import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
 import win.masteryyh.masteryyhsystem.base.utils.DatabaseHostKeyVerifier;
 import win.masteryyh.masteryyhsystem.model.AppPlatform;
 import win.masteryyh.masteryyhsystem.model.Credential;
 import win.masteryyh.masteryyhsystem.model.dto.CredentialType;
 import win.masteryyh.masteryyhsystem.model.dto.InitSystem;
+import win.masteryyh.masteryyhsystem.model.dto.PlatformType;
+import win.masteryyh.masteryyhsystem.platform.webshell.WebShellSession;
 import win.masteryyh.masteryyhsystem.repository.AppPlatformRepository;
 import win.masteryyh.masteryyhsystem.repository.CredentialRepository;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -83,6 +88,50 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
         try {
             client.close();
         } catch (IOException ignored) {
+        }
+    }
+
+    public WebShellSession openShell(UUID platformId, int cols, int rows) {
+        AppPlatform platform = platformRepository.findById(platformId)
+                .orElseThrow(() -> new BusinessException(
+                        404, "error.platform.notFound", "Platform " + platformId + " not found"));
+        if (platform.getPlatformType() != PlatformType.HOST) {
+            throw new BusinessException(
+                    400, "error.platform.shellNotSupported",
+                    "Web shell is only supported on HOST platforms");
+        }
+
+        SSHClient sshClient = null;
+        Session session = null;
+        Session.Shell shell = null;
+        try {
+            sshClient = createClient(platform);
+            session = sshClient.startSession();
+            session.allocatePTY("xterm-256color", cols, rows, 0, 0, Collections.emptyMap());
+            shell = session.startShell();
+            return new WebShellSession(sshClient, session, shell);
+        } catch (Exception e) {
+            if (shell != null) {
+                try {
+                    shell.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (sshClient != null) {
+                try {
+                    sshClient.close();
+                } catch (IOException ignored) {
+                }
+            }
+            throw new BusinessException(
+                    500, "error.platform.shellOpenFailed",
+                    "Failed to open shell: " + e.getMessage());
         }
     }
 

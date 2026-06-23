@@ -262,6 +262,24 @@
         "initSystem": {
             "SYSTEMD": "systemd",
             "OPENRC": "OpenRC"
+        },
+        "actions": {
+            "openShell": "启动网页 Shell"
+        }
+    },
+    "shell": {
+        "title": "Shell",
+        "empty": "暂无 Shell 会话",
+        "collapse": "收起",
+        "expand": "展开",
+        "close": "关闭",
+        "status": {
+            "connecting": "连接中",
+            "connected": "已连接",
+            "disconnected": "已断开"
+        },
+        "error": {
+            "connectFailed": "Shell 连接失败"
         }
     },
     "fingerprint": {

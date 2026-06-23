@@ -11,6 +11,7 @@ import {
     Pencil,
     Plus,
     Server,
+    TerminalSquare,
     Trash2,
 } from "lucide-react";
 
@@ -44,6 +45,7 @@ import { FingerprintBadge } from "@/features/credentials/fingerprint-badge";
 import { useApi } from "@/hooks/use-api";
 import { useNotify } from "@/hooks/use-notify";
 import { useTranslation } from "@/hooks/use-translation";
+import { useWebShell } from "@/hooks/use-web-shell";
 import { formatDate } from "@/lib/formatters";
 import type {
     AppPlatform,
@@ -89,6 +91,7 @@ export function PlatformsPage() {
     const api = useApi();
     const notify = useNotify();
     const { t } = useTranslation();
+    const { openShell } = useWebShell();
 
     const [page, setPage] = useState(1);
     const [result, setResult] = useState<PagedResponse<AppPlatform> | null>(
@@ -342,11 +345,16 @@ export function PlatformsPage() {
                                                   ]
                                                 : undefined
                                         }
+                                        canOpenShell={
+                                            platform.platformType === "HOST" &&
+                                            platform.online
+                                        }
                                         onEdit={() => openEdit(platform)}
                                         onDelete={() => {
                                             setDeleteError(null);
                                             setDeleting(platform);
                                         }}
+                                        onOpenShell={() => openShell(platform)}
                                     />
                                 ))}
                             </tbody>
@@ -674,13 +682,17 @@ export function PlatformsPage() {
 function PlatformRow({
     platform,
     credential,
+    canOpenShell,
     onEdit,
     onDelete,
+    onOpenShell,
 }: {
     platform: AppPlatform;
     credential?: Credential;
+    canOpenShell: boolean;
     onEdit: () => void;
     onDelete: () => void;
+    onOpenShell: () => void;
 }) {
     const { t } = useTranslation();
     const privateKeyInfo =
@@ -775,10 +787,17 @@ function PlatformRow({
                             </span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-32">
+                    <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuItem onClick={onEdit}>
                             <Pencil />
                             {t("common.edit")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onClick={onOpenShell}
+                            disabled={!canOpenShell}
+                        >
+                            <TerminalSquare />
+                            {t("platforms.actions.openShell")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             variant="destructive"

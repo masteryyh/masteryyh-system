@@ -262,6 +262,24 @@
         "initSystem": {
             "SYSTEMD": "systemd",
             "OPENRC": "OpenRC"
+        },
+        "actions": {
+            "openShell": "Launch web shell"
+        }
+    },
+    "shell": {
+        "title": "Shell",
+        "empty": "No shell session",
+        "collapse": "Collapse",
+        "expand": "Expand",
+        "close": "Close",
+        "status": {
+            "connecting": "Connecting",
+            "connected": "Connected",
+            "disconnected": "Disconnected"
+        },
+        "error": {
+            "connectFailed": "Shell connection failed"
         }
     },
     "fingerprint": {

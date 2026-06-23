@@ -32,6 +32,8 @@ import {
     SidebarProvider,
     SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { WebShellBar } from "@/components/web-shell-bar";
+import { WebShellProvider } from "@/context/web-shell-provider";
 import { useSession } from "@/hooks/use-session";
 import { useTranslation } from "@/hooks/use-translation";
 
@@ -70,6 +72,7 @@ export function ConsoleShell() {
     }
 
     return (
+        <WebShellProvider>
         <SidebarProvider>
             <Sidebar collapsible="icon">
                 <SidebarHeader>
@@ -156,18 +159,20 @@ export function ConsoleShell() {
                     </SidebarMenu>
                 </SidebarFooter>
             </Sidebar>
-            <SidebarInset className="min-w-0">
+            <SidebarInset className="flex min-w-0 flex-col h-screen">
                 <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b bg-background/88 px-4 backdrop-blur-lg">
                     <SidebarTrigger />
                     <Separator orientation="vertical" className="h-5" />
                     <span className="text-sm font-medium">{title}</span>
                 </header>
-                <main className="min-w-0 overflow-x-hidden bg-background/72 p-4 sm:p-6 lg:p-8">
+                <main className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background/72 p-4 sm:p-6 lg:p-8">
                     <div className="mx-auto w-full min-w-0 max-w-7xl">
                         <Outlet />
                     </div>
                 </main>
+                <WebShellBar />
             </SidebarInset>
         </SidebarProvider>
+        </WebShellProvider>
     );
 }
