@@ -356,10 +356,12 @@
             "unknownType": "未知的平台类型",
             "unknownId": "未知的平台 ID",
             "dockerHost": {
-                "empty": "Docker 主机地址不能为空"
+                "empty": "Docker 主机地址不能为空",
+                "used": "Docker 主机地址已被使用"
             },
             "sshHost": {
-                "empty": "SSH 主机地址不能为空"
+                "empty": "SSH 主机地址不能为空",
+                "used": "SSH 主机已被使用"
             },
             "sshUsername": {
                 "empty": "SSH 用户名不能为空"

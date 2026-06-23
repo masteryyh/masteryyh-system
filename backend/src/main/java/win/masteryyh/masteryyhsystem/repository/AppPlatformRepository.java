@@ -31,9 +31,10 @@ public interface AppPlatformRepository extends
 
     boolean existsByCredentialId(UUID credentialId);
 
-    /**
-     * 所有当前正在被引用（非软删）的凭据 ID 集合。用于批量计算 IN_USE 状态，避免 N+1。
-     */
     @Query("SELECT DISTINCT platform.credentialId FROM AppPlatform platform WHERE platform.credentialId IS NOT NULL AND platform.deletedAt IS NULL")
     Set<UUID> findInUseCredentialIds();
+
+    boolean existsByDockerHost(String host);
+
+    boolean existsBySshHostAndSshPortAndSshUsername(String host, int port, String username);
 }

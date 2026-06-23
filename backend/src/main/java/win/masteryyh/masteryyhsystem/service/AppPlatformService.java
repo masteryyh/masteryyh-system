@@ -39,9 +39,9 @@ public class AppPlatformService {
     private final CredentialRepository credentialRepository;
 
     public AppPlatformService(AppPlatformRepository appPlatformRepository,
-                              DockerManager dockerManager,
-                              SSHManager sshManager,
-                              CredentialRepository credentialRepository) {
+            DockerManager dockerManager,
+            SSHManager sshManager,
+            CredentialRepository credentialRepository) {
         this.appPlatformRepository = appPlatformRepository;
         this.dockerManager = dockerManager;
         this.sshManager = sshManager;
@@ -52,8 +52,9 @@ public class AppPlatformService {
     public PagedResponse<AppPlatformDto> page(PageDataRequest request) {
         logger.info("Requesting platform page {} size {}", request.page(), request.pageSize());
 
-        Page<AppPlatform> platformPage = appPlatformRepository.findAll(PageRequest.of(request.page() - 1, request.pageSize(),
-                Sort.by(Sort.Order.desc("updatedAt"), Sort.Order.desc("createdAt"))));
+        Page<AppPlatform> platformPage = appPlatformRepository
+                .findAll(PageRequest.of(request.page() - 1, request.pageSize(),
+                        Sort.by(Sort.Order.desc("updatedAt"), Sort.Order.desc("createdAt"))));
         long total = platformPage.getTotalElements();
         List<AppPlatform> platforms = platformPage.getContent();
         logger.info("Found {} platforms for page {}, total {}", platforms.size(), request.page(), total);
@@ -65,14 +66,14 @@ public class AppPlatformService {
             return AppPlatformDto.from(platform, sshManager.getStatus(platform.getId()));
         }).toList();
         return new PagedResponse<>(dtos, request.page(), request.pageSize(),
-                (int)Math.ceil((double) total / request.pageSize()), total);
+                (int) Math.ceil((double) total / request.pageSize()), total);
     }
 
     public AppPlatformDto get(UUID id) {
         logger.info("Requesting platform with ID {}", id);
 
-        AppPlatform appPlatform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "error.platform.notFound", "Platform not found"));
+        AppPlatform appPlatform = appPlatformRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound", "Platform not found"));
         boolean status = appPlatform.getPlatformType().equals(PlatformType.DOCKER)
                 ? dockerManager.getStatus(id)
                 : sshManager.getStatus(id);
@@ -91,12 +92,20 @@ public class AppPlatformService {
         appPlatform.setPlatformType(data.platformType());
 
         if (data.platformType().equals(PlatformType.DOCKER)) {
+            if (appPlatformRepository.existsByDockerHost(data.dockerHost())) {
+                throw new BusinessException(409, "error.platform.dockerHost.used", "Docker host already used");
+            }
             appPlatform.setDockerHost(data.dockerHost());
         } else if (data.platformType().equals(PlatformType.HOST)) {
+            int port = data.sshPort() == null ? 22 : data.sshPort();
+
+            if (appPlatformRepository.existsBySshHostAndSshPortAndSshUsername(data.sshHost(), port,
+                    data.sshUsername())) {
+                throw new BusinessException(409, "error.platform.sshHost.used", "SSH host already used");
+            }
+
             appPlatform.setInitSystem(data.initSystem());
             appPlatform.setSshHost(data.sshHost());
-
-            int port = data.sshPort() == null ? 22 : data.sshPort();
             appPlatform.setSshPort(port);
             appPlatform.setSshUsername(data.sshUsername());
             appPlatform.setHostKeys(data.hostKeys());
@@ -123,8 +132,8 @@ public class AppPlatformService {
 
     @Transactional(rollbackFor = Exception.class)
     public void update(UUID id, UpdateAppPlatformDto data) {
-        AppPlatform platform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "error.platform.notFound", "Platform not found"));
+        AppPlatform platform = appPlatformRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound", "Platform not found"));
 
         if (!data.name().equals(platform.getName())) {
             if (appPlatformRepository.existsByName(data.name())) {
@@ -137,16 +146,24 @@ public class AppPlatformService {
         boolean connUpdated = false;
         if (platform.getPlatformType().equals(PlatformType.DOCKER)) {
             if (!platform.getDockerHost().equals(data.dockerHost())) {
+                if (appPlatformRepository.existsByDockerHost(data.dockerHost())) {
+                    throw new BusinessException(409, "error.platform.dockerHost.used", "Docker host already used");
+                }
+
                 platform.setDockerHost(data.dockerHost());
                 connUpdated = true;
             }
         } else {
-            int port =  data.sshPort() == null ? 22 : data.sshPort();
+            int port = data.sshPort() == null ? 22 : data.sshPort();
 
             if (platform.getSshPort() != port
                     || !Objects.equals(platform.getSshUsername(), data.sshUsername())
                     || !Objects.equals(platform.getSshHost(), data.sshHost())
                     || !Objects.equals(platform.getInitSystem(), data.initSystem())) {
+                if (appPlatformRepository.existsBySshHostAndSshPortAndSshUsername(data.sshHost(), port,
+                        data.sshUsername())) {
+                    throw new BusinessException(409, "error.platform.sshHost.used", "SSH host already used");
+                }
                 connUpdated = true;
             }
             platform.setInitSystem(data.initSystem());
@@ -185,8 +202,8 @@ public class AppPlatformService {
 
     @Transactional(rollbackFor = Exception.class)
     public void remove(UUID id) {
-        AppPlatform platform = appPlatformRepository.findById(id).orElseThrow(() ->
-                new BusinessException(404, "error.platform.notFound", "Platform not found"));
+        AppPlatform platform = appPlatformRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound", "Platform not found"));
         if (platform.getPlatformType().equals(PlatformType.DOCKER)) {
             dockerManager.removePlatform(id);
         } else {

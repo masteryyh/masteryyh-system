@@ -356,10 +356,12 @@
             "unknownType": "Unknown platform type",
             "unknownId": "Unknown platform id",
             "dockerHost": {
-                "empty": "Docker host cannot be empty"
+                "empty": "Docker host cannot be empty",
+                "used": "Docker host already used"
             },
             "sshHost": {
-                "empty": "SSH host cannot be empty"
+                "empty": "SSH host cannot be empty",
+                "used": "SSH host already used"
             },
             "sshUsername": {
                 "empty": "SSH username cannot be empty"
