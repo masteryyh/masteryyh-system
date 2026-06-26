@@ -20,6 +20,10 @@ java {
     }
 }
 
+tasks.bootJar {
+    archiveFileName.set("masteryyh-system.jar")
+}
+
 repositories {
     mavenCentral()
 }

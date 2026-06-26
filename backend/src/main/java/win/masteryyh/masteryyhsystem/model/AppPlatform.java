@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -13,13 +14,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.generator.EventType;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.type.SqlTypes;
 import win.masteryyh.masteryyhsystem.model.dto.InitSystem;
@@ -40,7 +40,8 @@ import java.util.UUID;
 @SQLRestriction("deleted_at IS NULL")
 public class AppPlatform {
     @Id
-    @Generated(event = EventType.INSERT)
+    @GeneratedValue
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     @Column(name = "id", updatable = false, columnDefinition = "uuid default uuidv7()")
     private UUID id;
 
@@ -54,9 +55,6 @@ public class AppPlatform {
     @Enumerated(EnumType.STRING)
     private PlatformType platformType;
 
-    /**
-     * 主机类型的 init system（systemd / openrc）。仅当 {@link #platformType} 为 {@link PlatformType#HOST} 时有效。
-     */
     @Column(name = "init_system")
     @Enumerated(EnumType.STRING)
     private InitSystem initSystem;

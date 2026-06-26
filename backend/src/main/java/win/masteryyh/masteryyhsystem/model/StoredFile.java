@@ -2,6 +2,7 @@ package win.masteryyh.masteryyhsystem.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -9,9 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.generator.EventType;
+import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.proxy.HibernateProxy;
 
 import java.time.LocalDateTime;
@@ -26,7 +26,8 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class StoredFile {
     @Id
-    @Generated(event = EventType.INSERT)
+    @GeneratedValue
+    @UuidGenerator(style = UuidGenerator.Style.VERSION_7)
     @Column(updatable = false, columnDefinition = "uuid default uuidv7()")
     private UUID id;
 
