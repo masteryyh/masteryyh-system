@@ -54,7 +54,11 @@ export class BaseApiClient {
 
     async request<T>(path: string, init: RequestInit = {}): Promise<T> {
         const headers = new Headers(init.headers);
-        if (init.body && !headers.has("Content-Type")) {
+        if (
+            init.body &&
+            !(init.body instanceof FormData) &&
+            !headers.has("Content-Type")
+        ) {
             headers.set("Content-Type", "application/json");
         }
         if (this.context.token) {
@@ -99,6 +103,26 @@ export class BaseApiClient {
         }
 
         return (envelope ? envelope.data : payload) as T;
+    }
+
+    async download(path: string): Promise<Blob> {
+        const headers = new Headers();
+        if (this.context.token) {
+            headers.set("Authorization", `Bearer ${this.context.token}`);
+        }
+        const response = await fetch(path, { headers });
+        if (response.status === 401) {
+            this.context.onUnauthorized?.();
+            throw new AppError(401, "error.unauthorized", "Login session expired");
+        }
+        if (!response.ok) {
+            throw new AppError(
+                response.status,
+                "error.unknown",
+                `Download failed (${response.status})`,
+            );
+        }
+        return response.blob();
     }
 
     /**

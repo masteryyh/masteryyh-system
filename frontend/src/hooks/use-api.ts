@@ -5,6 +5,8 @@ import {
     AuthApi,
     BaseApiClient,
     CredentialsApi,
+    GatewaysApi,
+    FilesApi,
     PlatformsApi,
     SystemApi,
 } from "@/lib/api";
@@ -14,6 +16,8 @@ export interface ApiBundle {
     auth: AuthApi;
     credentials: CredentialsApi;
     platforms: PlatformsApi;
+    gateways: GatewaysApi;
+    files: FilesApi;
     system: SystemApi;
 }
 
@@ -40,6 +44,8 @@ export function useApi(): ApiBundle {
             auth: new AuthApi(client),
             credentials: new CredentialsApi(client),
             platforms: new PlatformsApi(client),
+            gateways: new GatewaysApi(client),
+            files: new FilesApi(client),
             system: new SystemApi(client),
         };
     }, [token, onUnauthorized]);

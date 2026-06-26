@@ -121,3 +121,113 @@ export interface AppPlatformRequest {
     credentialId?: string | null;
     hostKeys?: string[] | null;
 }
+
+export type GatewayStatus =
+    | "HEALTHY"
+    | "STARTING"
+    | "STOPPING"
+    | "STOPPED"
+    | "UNHEALTHY";
+
+export interface GatewayConfig {
+    id: string;
+    name: string;
+    description: string | null;
+    platformId: string;
+    appVersion: string | null;
+    containerImage: string | null;
+    containerConfigPath: string | null;
+    containerId: string | null;
+    containerName: string | null;
+    systemdServiceName: string | null;
+    localConfigPath: string | null;
+    configContent: string | null;
+    status: GatewayStatus;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface AddGatewayConfigRequest {
+    name: string;
+    description: string;
+    platformId: string;
+    appVersion?: string;
+    containerImage?: string;
+    containerConfigPath?: string;
+    configContent?: string;
+}
+
+export interface UpdateGatewayConfigRequest {
+    name: string;
+    description: string;
+    appVersion?: string;
+    containerImage?: string;
+    containerConfigPath?: string;
+    configContent?: string;
+}
+
+/** /v1/ws 推送的网关事件 data 形状（progress/done/failed 共用 envelope）。 */
+export interface GatewayEvent {
+    channel: string;
+    event: "progress" | "done" | "failed";
+    data: {
+        step?: string;
+        message?: string;
+        update?: boolean;
+        status?: string;
+    };
+}
+
+export interface StoredFile {
+    id: string;
+    name: string;
+    description: string | null;
+    originalFilename: string;
+    contentType: string;
+    size: number;
+    sha256: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface GatewayEntryPoint {
+    id: string;
+    gatewayId: string;
+    name: string;
+    listenPort: number;
+    domainNames: string[];
+    certificateCredentialId: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface GatewayEntryPointRequest {
+    name: string;
+    listenPort: number;
+    domainNames: string[];
+    certificateCredentialId?: string | null;
+}
+
+export type GatewayRouteType = "PROXY" | "STATIC";
+
+export interface GatewayRoute {
+    id: string;
+    entryPointId: string;
+    name: string;
+    pathPrefix: string;
+    routeType: GatewayRouteType;
+    priority: number;
+    proxyTarget: string | null;
+    staticFileId: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface GatewayRouteRequest {
+    name: string;
+    pathPrefix: string;
+    routeType: GatewayRouteType;
+    priority: number;
+    proxyTarget?: string | null;
+    staticFileId?: string | null;
+}

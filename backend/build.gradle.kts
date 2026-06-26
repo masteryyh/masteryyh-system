@@ -1,4 +1,4 @@
-import java.io.File
+
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -38,13 +38,14 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-websocket")
     implementation("com.github.docker-java:docker-java-core:3.7.1")
     implementation("com.github.docker-java:docker-java-transport-zerodep:3.7.1")
+    implementation("software.amazon.awssdk:s3:2.31.77")
+    implementation("org.apache.commons:commons-compress:1.27.1")
     implementation("org.redisson:redisson-spring-boot-starter:4.5.0")
     implementation("org.bouncycastle:bcprov-jdk18on:1.84")
     implementation("org.bouncycastle:bcpkix-jdk18on:1.84")
     implementation("io.hypersistence:hypersistence-utils-hibernate-73:3.15.3")
     implementation("com.hierynomus:sshj:0.38.0")
     compileOnly("org.projectlombok:lombok")
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("org.postgresql:postgresql")
     annotationProcessor("org.projectlombok:lombok")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")

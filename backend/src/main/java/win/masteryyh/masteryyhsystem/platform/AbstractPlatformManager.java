@@ -87,8 +87,8 @@ public abstract class AbstractPlatformManager<C> {
                     tryClose(conn.client);
                     conn.client = null;
                 }
+
                 C newClient = connectWithRetry(conn.platform);
-                // 重建期间平台可能已被 removePlatform 移除，丢弃新 client 避免泄漏。
                 if (!connections.containsKey(conn.platform.getId())) {
                     if (newClient != null) {
                         tryClose(newClient);

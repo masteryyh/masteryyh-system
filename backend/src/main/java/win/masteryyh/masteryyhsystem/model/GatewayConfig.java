@@ -10,11 +10,14 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
 import org.hibernate.proxy.HibernateProxy;
-import org.springframework.data.annotation.CreatedDate;
-import win.masteryyh.masteryyhsystem.model.dto.PlatformType;
+import win.masteryyh.masteryyhsystem.model.dto.GatewayStatus;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -26,21 +29,25 @@ import java.util.UUID;
 @Setter
 @ToString
 @RequiredArgsConstructor
+@SQLDelete(sql = "UPDATE gateway_config SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 public class GatewayConfig {
     @Id
     @Generated(event = EventType.INSERT)
     @Column(updatable = false, columnDefinition = "uuid default uuidv7()")
     private UUID id;
 
-    @Column(name = "deploy_type", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private PlatformType platformType;
+    @Column(name = "name", nullable = false)
+    private String name;
 
-    @Column(name = "docker_host")
-    private String dockerHost;
+    @Column(name = "description")
+    private String description;
 
-    @Column(name = "docker_port")
-    private Integer dockerPort;
+    @Column(name = "platform_id", nullable = false, updatable = false)
+    private UUID platformId;
+
+    @Column(name = "app_version")
+    private String appVersion;
 
     @Column(name = "container_id")
     private String containerId;
@@ -54,15 +61,26 @@ public class GatewayConfig {
     @Column(name = "systemd_service_name")
     private String systemdServiceName;
 
+    @Column(name = "config_content")
+    private String configContent;
+
     @Column(name = "local_config_path")
     private String localConfigPath;
 
     @Column(name = "container_config_path")
     private String containerConfigPath;
 
-    @CreatedDate
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, columnDefinition = "varchar(32) not null default 'STOPPED'")
+    private GatewayStatus status;
+
+    @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "timestamp not null default now()")
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", columnDefinition = "timestamp not null default now()")
+    private LocalDateTime updatedAt;
 
     @Column(name = "deleted_at", columnDefinition = "timestamp")
     private LocalDateTime deletedAt;

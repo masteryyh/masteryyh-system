@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import {
     Home,
+    Files,
     KeyRound,
     LayoutDashboard,
     LogOut,
+    Network,
     Server,
 } from "lucide-react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router";
@@ -41,6 +43,8 @@ const navigation = [
     { to: "/home", labelKey: "nav.home", icon: Home },
     { to: "/credentials", labelKey: "nav.credentials", icon: KeyRound },
     { to: "/platforms", labelKey: "nav.platforms", icon: Server },
+    { to: "/gateways", labelKey: "nav.gateways", icon: Network },
+    { to: "/files", labelKey: "nav.files", icon: Files },
 ] satisfies Array<{
     to: string;
     labelKey: string;
@@ -57,8 +61,10 @@ export function ConsoleShell() {
         () => session?.username.slice(0, 2).toUpperCase() ?? "",
         [session?.username],
     );
-    const activeItem = navigation.find(
-        (item) => item.to === location.pathname,
+    const activeItem = navigation.find((item) =>
+        item.to === "/home"
+            ? item.to === location.pathname
+            : location.pathname.startsWith(item.to),
     );
     const title = activeItem ? t(activeItem.labelKey) : undefined;
 

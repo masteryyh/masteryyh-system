@@ -39,15 +39,17 @@ public class CredentialService {
     private final CredentialRepository credentialRepository;
 
     private final AppPlatformRepository appPlatformRepository;
+    private final win.masteryyh.masteryyhsystem.repository.GatewayEntryPointRepository gatewayEntryPointRepository;
 
-    /** 距离过期不足该天数时进入 EXPIRING_SOON 状态，默认 30 天，可通过 application.yaml 覆盖。 */
     private final int expiringSoonDays;
 
     public CredentialService(CredentialRepository credentialRepository,
                              AppPlatformRepository appPlatformRepository,
+                             win.masteryyh.masteryyhsystem.repository.GatewayEntryPointRepository gatewayEntryPointRepository,
                              @Value("${system.credential.expiring-soon-days:30}") int expiringSoonDays) {
         this.credentialRepository = credentialRepository;
         this.appPlatformRepository = appPlatformRepository;
+        this.gatewayEntryPointRepository = gatewayEntryPointRepository;
         this.expiringSoonDays = expiringSoonDays;
     }
 
@@ -142,7 +144,6 @@ public class CredentialService {
         }
         credential.setDescription(data.description());
 
-        // X509 凭据的 expiresAt 与证书 notAfter 绑定，禁止从外部覆盖。
         if (credential.getCredentialType() == CredentialType.X509_CERTIFICATE) {
             if (data.expiresAt() != null
                     && !data.expiresAt().equals(credential.getExpiresAt())) {
@@ -153,7 +154,6 @@ public class CredentialService {
             credential.setExpiresAt(data.expiresAt());
         }
 
-        // 同步刷新状态，避免列表立即展示过期信息却显示旧的 ACTIVE/IN_USE。
         Set<UUID> inUseIds = appPlatformRepository.findInUseCredentialIds();
         credential.setStatus(computeStatus(credential, inUseIds, LocalDateTime.now()));
 
@@ -169,14 +169,14 @@ public class CredentialService {
         if (appPlatformRepository.existsByCredentialId(credential.getId())) {
             throw new BusinessException(409, "error.credential.occupied", "Credential already occupied");
         }
+        if (gatewayEntryPointRepository.existsByCertificateCredentialId(credential.getId())) {
+            throw new BusinessException(409, "error.credential.occupied",
+                    "Credential is referenced by a gateway entry point");
+        }
 
         credentialRepository.delete(credential);
     }
 
-    /**
-     * 扫描所有凭据，按当前的使用情况和过期时间重算 status；仅对发生变化的实体落库。
-     * 由 {@link CredentialStatusScheduler} 每 5 分钟触发一次。
-     */
     @Transactional(rollbackFor = Exception.class)
     public int recomputeAllStatuses() {
         LocalDateTime now = LocalDateTime.now();
@@ -196,9 +196,6 @@ public class CredentialService {
         return changed;
     }
 
-    /**
-     * 状态判定单点。优先级：EXPIRED > EXPIRING_SOON > IN_USE > ACTIVE。
-     */
     private CredentialStatus computeStatus(Credential credential, Set<UUID> inUseIds, LocalDateTime now) {
         LocalDateTime expiresAt = credential.getExpiresAt();
         if (expiresAt != null) {
@@ -209,7 +206,6 @@ public class CredentialService {
                 return CredentialStatus.EXPIRING_SOON;
             }
         }
-        // credential.id 在新建场景下尚未生成，因此用 null-safe 比对。
         if (credential.getId() != null && inUseIds.contains(credential.getId())) {
             return CredentialStatus.IN_USE;
         }

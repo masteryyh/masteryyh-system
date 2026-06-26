@@ -10,4 +10,8 @@ export type { CredentialListParams } from "@/lib/api/credentials";
 export { PlatformsApi } from "@/lib/api/platforms";
 export type { PlatformListParams } from "@/lib/api/platforms";
 
+export { GatewaysApi } from "@/lib/api/gateways";
+export { FilesApi } from "@/lib/api/files";
+export type { GatewayListParams } from "@/lib/api/gateways";
+
 export { SystemApi } from "@/lib/api/system";

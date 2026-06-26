@@ -7,6 +7,10 @@ spring:
       enabled: true
   application:
     name: masteryyh-system
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 105MB
   datasource:
     url: jdbc:postgresql://truenas.internal.masteryyh.win:5432/masteryyh_test
     username: postgres
@@ -34,5 +38,16 @@ system:
     password: abc123456
     email: admin@example.com
   credential:
-    # 距离过期不足该天数时凭据状态进入 EXPIRING_SOON。
     expiring-soon-days: 30
+  file:
+    max-size: 104857600
+    s3:
+      endpoint: https://truenas.internal.masteryyh.win:7878
+      region: cn-south-1
+      bucket: masteryyh-system
+      access-key: RAu8Re4BUUSKRH7DvNWr
+      secret-key: 98UwzUgVqBehMXV9yfgW38Y4WYNiwLjzKNpzKZJ7
+      path-style-access: true
+  gateway:
+    max-static-files: 10000
+    max-static-uncompressed-size: 536870912

@@ -12,6 +12,8 @@ public class SystemConfiguration {
 
     private String jwtSecret;
 
+    private FileConfig file;
+
     @Data
     public static class AdminConfig {
         private String username;
@@ -20,4 +22,28 @@ public class SystemConfiguration {
 
         private String email;
     }
+
+    @Data
+    public static class FileConfig {
+        private S3Config s3;
+
+        private Long maxSize;
+
+        @Data
+        public static class S3Config {
+            private String endpoint;
+
+            private String region;
+
+            private String accessKey;
+
+            private String secretKey;
+
+            private Boolean pathStyleAccess;
+
+            private String bucket;
+        }
+    }
+
+
 }

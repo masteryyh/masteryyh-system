@@ -2,6 +2,7 @@ package win.masteryyh.masteryyhsystem.platform;
 
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.connection.channel.direct.Session;
+import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
 import net.schmizz.sshj.userauth.method.AuthMethod;
 import net.schmizz.sshj.userauth.method.AuthNone;
@@ -9,6 +10,7 @@ import net.schmizz.sshj.userauth.method.AuthPassword;
 import net.schmizz.sshj.userauth.method.AuthPublickey;
 import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
+import net.schmizz.sshj.xfer.FileSystemFile;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
@@ -24,11 +26,14 @@ import win.masteryyh.masteryyhsystem.repository.CredentialRepository;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Component
 public class SSHManager extends AbstractPlatformManager<SSHClient> {
@@ -132,6 +137,138 @@ public class SSHManager extends AbstractPlatformManager<SSHClient> {
             throw new BusinessException(
                     500, "error.platform.shellOpenFailed",
                     "Failed to open shell: " + e.getMessage());
+        }
+    }
+
+    public CommandResult runCommand(UUID platformId, String command, long timeoutSec) {
+        AppPlatform platform = platformRepository.findById(platformId)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound",
+                        "Platform " + platformId + " not found"));
+        if (platform.getPlatformType() != PlatformType.HOST) {
+            throw new BusinessException(400, "error.platform.notHost",
+                    "Remote commands are only supported on HOST platforms");
+        }
+
+        SSHClient sshClient = null;
+        try {
+            sshClient = createClient(platform);
+            return execCommand(sshClient, command, timeoutSec);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.warn("Failed to run remote command on platform {}: ", platformId, e);
+            throw new BusinessException(500, "error.platform.commandFailed",
+                    "Failed to run remote command: " + e.getMessage());
+        } finally {
+            if (sshClient != null) {
+                try {
+                    sshClient.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    public void uploadBytes(UUID platformId, byte[] content, String remotePath) {
+        AppPlatform platform = platformRepository.findById(platformId)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound",
+                        "Platform " + platformId + " not found"));
+        if (!platform.getPlatformType().equals(PlatformType.HOST)) {
+            throw new BusinessException(400, "error.platform.notHost",
+                    "File upload is only supported on HOST platforms");
+        }
+
+        Path temp = null;
+        SSHClient sshClient = null;
+        SFTPClient sftp = null;
+        try {
+            temp = Files.createTempFile("masteryyh-upload-", ".bin");
+            Files.write(temp, content);
+
+            sshClient = createClient(platform);
+            sftp = sshClient.newSFTPClient();
+
+            int slash = remotePath.lastIndexOf('/');
+            if (slash > 0) {
+                String parent = remotePath.substring(0, slash);
+                try {
+                    sftp.mkdirs(parent);
+                } catch (IOException ignored) {}
+            }
+            sftp.put(new FileSystemFile(temp.toFile()), remotePath);
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            logger.warn("Failed to upload file to platform {}: ", platformId, e);
+            throw new BusinessException(500, "error.platform.uploadFailed",
+                    "Failed to upload file: " + e.getMessage());
+        } finally {
+            if (sftp != null) {
+                try {
+                    sftp.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (sshClient != null) {
+                try {
+                    sshClient.close();
+                } catch (IOException ignored) {
+                }
+            }
+            if (temp != null) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException ignored) {
+                }
+            }
+        }
+    }
+
+    private CommandResult execCommand(SSHClient sshClient, String command, long timeoutSec) throws IOException {
+        try (Session session = sshClient.startSession()) {
+            Session.Command cmd = session.exec(command);
+
+            AtomicReference<byte[]> stdoutRef = new AtomicReference<>();
+            AtomicReference<byte[]> stderrRef = new AtomicReference<>();
+            Thread outReader = Thread.ofVirtual().start(() -> {
+                try {
+                    stdoutRef.set(cmd.getInputStream().readAllBytes());
+                } catch (IOException e) {
+                    stdoutRef.set(new byte[0]);
+                }
+            });
+            Thread errReader = Thread.ofVirtual().start(() -> {
+                try {
+                    stderrRef.set(cmd.getErrorStream().readAllBytes());
+                } catch (IOException e) {
+                    stderrRef.set(new byte[0]);
+                }
+            });
+
+            cmd.join(timeoutSec, TimeUnit.SECONDS);
+            Integer exit = cmd.getExitStatus();
+            if (exit == null) {
+                cmd.close();
+                try {
+                    outReader.join();
+                    errReader.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return new CommandResult(-1,
+                        new String(stdoutRef.get(), StandardCharsets.UTF_8),
+                        "Command timed out after " + timeoutSec + "s");
+            }
+            try {
+                outReader.join();
+                errReader.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            String stdout = new String(stdoutRef.get(), StandardCharsets.UTF_8);
+            String stderr = new String(stderrRef.get(), StandardCharsets.UTF_8);
+            return new CommandResult(exit, stdout, stderr);
         }
     }
 

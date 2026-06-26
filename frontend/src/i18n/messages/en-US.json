@@ -32,6 +32,8 @@
         "home": "Home",
         "credentials": "Credentials",
         "platforms": "App Platform",
+        "gateways": "Gateways",
+        "files": "Files",
         "logout": "Sign out",
         "console": "Console",
         "openMenu": "Open menu",
@@ -61,6 +63,14 @@
             "platforms": {
                 "title": "App Platform",
                 "description": "Register and connect Systemd hosts or Docker daemons under management."
+            },
+            "gateways": {
+                "title": "Gateways",
+                "description": "Deploy nginx gateways on managed platforms and manage reverse proxy configs."
+            },
+            "files": {
+                "title": "Files",
+                "description": "Keep static-site archives and deployment assets in S3-compatible storage."
             }
         }
     },
@@ -267,6 +277,183 @@
             "openShell": "Launch web shell"
         }
     },
+    "gateways": {
+        "eyebrow": "Gateway",
+        "title": "Gateways",
+        "description": "Deploy nginx gateways on managed platforms asynchronously, with live deploy/teardown progress.",
+        "addButton": "New gateway",
+        "empty": {
+            "title": "No gateways yet",
+            "description": "Click \"New gateway\" to add one."
+        },
+        "columns": {
+            "name": "Name",
+            "platform": "Platform",
+            "version": "Version / Image",
+            "status": "Status",
+            "updatedAt": "Updated at",
+            "actions": "Actions"
+        },
+        "status": {
+            "HEALTHY": "Running",
+            "STARTING": "Deploying",
+            "STOPPING": "Removing",
+            "STOPPED": "Stopped",
+            "UNHEALTHY": "Unhealthy"
+        },
+        "form": {
+            "createTitle": "New gateway",
+            "editTitle": "Edit gateway",
+            "createDescription": "Deploy a new nginx gateway on the target platform.",
+            "editDescription": "Update this gateway's configuration and redeploy.",
+            "name": "Name",
+            "namePlaceholder": "e.g. edge-gateway",
+            "descriptionField": "Description",
+            "descriptionPlaceholder": "Optional, describes the purpose",
+            "platform": "Target platform",
+            "platformPlaceholder": "Select a managed platform",
+            "appVersion": "nginx version",
+            "appVersionPlaceholder": "e.g. 1.28.0",
+            "containerImage": "Container image",
+            "containerImagePlaceholder": "e.g. nginx:alpine",
+            "containerConfigPath": "Container config path",
+            "containerConfigPathPlaceholder": "/etc/nginx/conf.d/gateway.conf",
+            "configContent": "nginx main config (optional)",
+            "configContentHint": "When set, replaces /etc/nginx/nginx.conf. Leave empty to keep the image or host default.",
+            "submitCreate": "Create",
+            "submitEdit": "Save"
+        },
+        "progress": {
+            "title": "Deploy progress",
+            "empty": "Waiting for events…",
+            "idle": "No progress log"
+        },
+        "step": {
+            "teardown": "Teardown",
+            "delete": "Delete record",
+            "start": "Start",
+            "pull": "Pull image",
+            "volume": "Create volume",
+            "config": "Write config",
+            "create": "Start container",
+            "started": "Started",
+            "upload-script": "Upload script",
+            "upload-config": "Upload config",
+            "install": "Install",
+            "validate": "Validate config"
+        },
+        "actions": {
+            "toggleLog": "Toggle progress log",
+            "manage": "Manage entry points and routes"
+        },
+        "success": {
+            "created": "Gateway created, deploying",
+            "updated": "Gateway updated, redeploying",
+            "deleted": "Gateway deleted",
+            "deployed": "Gateway deployed"
+        },
+        "deleteDialog": {
+            "title": "Delete gateway",
+            "description": "Delete gateway \"{name}\"? The runtime is torn down before the record is removed. This cannot be undone.",
+            "confirm": "Delete"
+        },
+        "fallback": {
+            "loadFailed": "Failed to load gateways",
+            "saveFailed": "Failed to save gateway",
+            "deleteFailed": "Failed to delete gateway",
+            "deployFailed": "Gateway deployment failed"
+        }
+    },
+    "files": {
+        "eyebrow": "Object storage",
+        "title": "Files",
+        "description": "Store content in an S3-compatible object store for static routes and future deployments.",
+        "addButton": "Upload file",
+        "empty": {
+            "title": "No files yet",
+            "description": "Upload a static-site ZIP or another deployment asset."
+        },
+        "columns": {
+            "name": "File",
+            "size": "Size",
+            "sha256": "SHA-256",
+            "updatedAt": "Updated at"
+        },
+        "form": {
+            "createTitle": "Upload file",
+            "editTitle": "Edit file",
+            "createDescription": "The content will be stored in the configured S3-compatible object store.",
+            "editDescription": "Update metadata, or choose a replacement object.",
+            "name": "Name",
+            "descriptionField": "Description",
+            "file": "File content",
+            "replace": "Replace content (optional)",
+            "choose": "Choose a file",
+            "limit": "Maximum file size: 100 MiB"
+        },
+        "deleteConfirm": "Delete file \"{name}\"?",
+        "success": {
+            "created": "File uploaded",
+            "updated": "File updated",
+            "deleted": "File deleted"
+        },
+        "fallback": {
+            "loadFailed": "Failed to load files",
+            "saveFailed": "Failed to save file",
+            "deleteFailed": "Failed to delete file"
+        }
+    },
+    "gatewayDetail": {
+        "back": "Back to gateways",
+        "eyebrow": "Traffic map",
+        "description": "Configure listening ports, domains, TLS, and downstream routes.",
+        "loadFailed": "Failed to load gateway details",
+        "saveFailed": "Failed to save configuration",
+        "entry": {
+            "title": "Entry points",
+            "add": "New entry point",
+            "empty": "No entry points configured",
+            "select": "Select an entry point to inspect routes",
+            "create": "New gateway entry point",
+            "edit": "Edit gateway entry point",
+            "formDescription": "Each entry point maps to one nginx server block.",
+            "name": "Entry point name",
+            "port": "Listen port",
+            "domains": "Domains (comma-separated)",
+            "certificate": "HTTPS certificate",
+            "noCertificate": "HTTPS disabled",
+            "deleteConfirm": "Delete entry point \"{name}\" and all of its routes?"
+        },
+        "route": {
+            "title": "Traffic routes",
+            "description": "Forward by path to an upstream service, or serve a static ZIP directly.",
+            "add": "New route",
+            "empty": "This entry point has no routes",
+            "create": "New gateway route",
+            "edit": "Edit gateway route",
+            "formDescription": "Saving a route validates and redeploys its gateway.",
+            "name": "Route name",
+            "path": "Path prefix",
+            "typeField": "Service mode",
+            "priority": "Priority",
+            "proxyTarget": "Upstream URL",
+            "staticFile": "Static resource ZIP",
+            "chooseFile": "Choose an uploaded ZIP",
+            "uploadZip": "Upload a new static resource ZIP",
+            "uploadDescription": "Static resource uploaded from a gateway route",
+            "deleteConfirm": "Delete route \"{name}\"?",
+            "type": {
+                "PROXY": "Proxy service",
+                "STATIC": "Static resources"
+            }
+        },
+        "success": {
+            "entrySaved": "Entry point saved; gateway redeploying",
+            "entryDeleted": "Entry point deleted; gateway redeploying",
+            "routeSaved": "Route saved; gateway redeploying",
+            "routeDeleted": "Route deleted; gateway redeploying"
+        }
+    },
     "shell": {
         "title": "Shell",
         "empty": "No shell session",
@@ -355,6 +542,15 @@
             "credentialNotFound": "Selected credential does not exist",
             "unknownType": "Unknown platform type",
             "unknownId": "Unknown platform id",
+            "notReady": "Target platform is not ready; please retry later",
+            "initSystem": {
+                "empty": "Please choose an init system for the host"
+            },
+            "notHost": "This platform is not a HOST platform",
+            "commandFailed": "Remote command execution failed",
+            "uploadFailed": "Failed to upload the file to the remote platform",
+            "shellNotSupported": "This platform does not support the web shell",
+            "shellOpenFailed": "Failed to open the web shell",
             "dockerHost": {
                 "empty": "Docker host cannot be empty",
                 "used": "Docker host already used"
@@ -366,6 +562,75 @@
             "sshUsername": {
                 "empty": "SSH username cannot be empty"
             }
+        },
+        "gateway": {
+            "notFound": "Gateway not found",
+            "alreadyExists": "Gateway name already taken",
+            "platformType": {
+                "unknown": "Unknown platform type"
+            },
+            "containerImage": {
+                "empty": "Container image cannot be empty"
+            },
+            "containerConfigPath": {
+                "empty": "Container config path cannot be empty"
+            },
+            "appVersion": {
+                "empty": "nginx version cannot be empty"
+            },
+            "configWriteFailed": "Failed to write gateway config",
+            "installFailed": "Gateway installation failed",
+            "name": {
+                "invalid": "Gateway name may only contain letters, digits, dots, underscores, and hyphens"
+            },
+            "mainConfig": {
+                "includeMissing": "Custom nginx main config must include /etc/nginx/conf.d/*.conf"
+            },
+            "nginxConfig": {
+                "unsupported": "The nginx config contains an unsupported directive or structure"
+            },
+            "certificate": {
+                "writeFailed": "Failed to write the HTTPS certificate private key"
+            },
+            "staticFile": {
+                "readFailed": "Failed to read or extract the static resource ZIP"
+            },
+            "bundleFailed": "Failed to build the gateway deployment bundle"
+        },
+        "gatewayEntryPoint": {
+            "notFound": "Gateway entry point not found",
+            "alreadyExists": "An entry point with the same name or listen port already exists in this gateway",
+            "name": {
+                "invalid": "Entry point name may only contain letters, digits, dots, underscores, and hyphens"
+            },
+            "domain": {
+                "invalid": "Response domain is invalid"
+            },
+            "certificate": {
+                "invalid": "HTTPS certificate must reference an X.509 credential"
+            }
+        },
+        "gatewayRoute": {
+            "notFound": "Gateway route not found",
+            "alreadyExists": "A route with this name already exists in the entry point",
+            "path": {
+                "invalid": "Route path must start with /"
+            },
+            "proxyTarget": {
+                "empty": "Proxy target cannot be empty",
+                "invalid": "Proxy target must be a valid HTTP or HTTPS URL"
+            },
+            "staticFile": {
+                "empty": "Static resource route requires a ZIP file",
+                "zipRequired": "Static resource file must be a ZIP archive",
+                "invalid": "Static resource ZIP content or directory structure is invalid"
+            }
+        },
+        "file": {
+            "notFound": "File not found",
+            "occupied": "File is in use",
+            "empty": "Uploaded file cannot be empty",
+            "tooLarge": "Uploaded file exceeds the size limit"
         }
     },
     "validation": {
@@ -389,6 +654,43 @@
                 "max": "SSH port cannot exceed 65535"
             }
         },
+        "gateway": {
+            "name": {
+                "notBlank": "Gateway name cannot be blank"
+            },
+            "platformId": {
+                "notNull": "Please choose a target platform"
+            },
+            "nginxConfig": {
+                "notBlank": "nginx config content cannot be blank"
+            }
+        },
+        "gatewayEntryPoint": {
+            "name": {
+                "notBlank": "Entry point name cannot be blank"
+            },
+            "port": {
+                "min": "Listen port must be at least 1",
+                "max": "Listen port cannot exceed 65535"
+            },
+            "domains": {
+                "notEmpty": "Enter at least one response domain"
+            }
+        },
+        "gatewayRoute": {
+            "name": {
+                "notBlank": "Route name cannot be blank"
+            },
+            "path": {
+                "notBlank": "Route path cannot be blank"
+            },
+            "type": {
+                "notNull": "Please choose a route type"
+            },
+            "priority": {
+                "min": "Route priority cannot be less than 0"
+            }
+        },
         "username": {
             "notBlank": "Username cannot be blank",
             "length": "Username length must be 1-32 chars"
@@ -396,6 +698,11 @@
         "password": {
             "notEmpty": "Password cannot be empty",
             "length": "Password must be at least 6 chars"
+        },
+        "file": {
+            "name": {
+                "notBlank": "Filename cannot be blank"
+            }
         }
     }
 }

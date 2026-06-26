@@ -7,6 +7,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/context/session-provider";
 import { VersionProvider } from "@/context/version-provider";
 import { CredentialsPage } from "@/features/credentials/credentials-page";
+import { GatewaysPage } from "@/features/gateways/gateways-page";
+import { GatewayDetailPage } from "@/features/gateways/gateway-detail-page";
+import { FilesPage } from "@/features/files/files-page";
 import { HomePage } from "@/features/home/home-page";
 import { LoginPage } from "@/features/login/login-page";
 import { PlatformsPage } from "@/features/platforms/platforms-page";
@@ -47,6 +50,18 @@ function App() {
                                         <Route
                                             path="/platforms"
                                             element={<PlatformsPage />}
+                                        />
+                                        <Route
+                                            path="/gateways"
+                                            element={<GatewaysPage />}
+                                        />
+                                        <Route
+                                            path="/gateways/:gatewayId"
+                                            element={<GatewayDetailPage />}
+                                        />
+                                        <Route
+                                            path="/files"
+                                            element={<FilesPage />}
                                         />
                                     </Route>
                                 </Route>

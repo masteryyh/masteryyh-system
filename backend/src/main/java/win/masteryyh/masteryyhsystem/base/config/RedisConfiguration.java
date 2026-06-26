@@ -22,7 +22,7 @@ public class RedisConfiguration {
     }
 
     @Bean(destroyMethod = "shutdown")
-    public RedissonClient redissonClient(@Value("classpath:/redisson.yaml") Resource configFile) throws IOException {
+    public RedissonClient redissonClient(@Value("classpath:redisson.yaml") Resource configFile) throws IOException {
         Config config = Config.fromYAML(configFile.getInputStream());
         return Redisson.create(config);
     }

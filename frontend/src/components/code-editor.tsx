@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 import "@/lib/monaco-setup";
 
-type CodeEditorLanguage = "pem" | "plaintext";
+type CodeEditorLanguage = "pem" | "plaintext" | "ini";
 
 export interface CodeEditorProps {
     id?: string;

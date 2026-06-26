@@ -32,6 +32,8 @@
         "home": "首页",
         "credentials": "凭据",
         "platforms": "App Platform",
+        "gateways": "网关",
+        "files": "文件",
         "logout": "退出登录",
         "console": "控制台",
         "openMenu": "打开菜单",
@@ -61,6 +63,14 @@
             "platforms": {
                 "title": "App Platform",
                 "description": "登记并连接被纳管的主机或 Docker 平台。"
+            },
+            "gateways": {
+                "title": "网关管理",
+                "description": "在纳管平台上部署 nginx 网关，统一管理反向代理配置。"
+            },
+            "files": {
+                "title": "文件管理",
+                "description": "通过 S3 兼容存储集中保管静态站点包与其他部署文件。"
             }
         }
     },
@@ -267,6 +277,184 @@
             "openShell": "启动网页 Shell"
         }
     },
+    "gateways": {
+        "eyebrow": "Gateway",
+        "title": "网关管理",
+        "description": "在纳管平台上异步部署 nginx 网关，实时查看部署/卸载进度。",
+        "addButton": "新增网关",
+        "empty": {
+            "title": "尚未配置网关",
+            "description": "点击右上角「新增网关」开始添加。"
+        },
+        "columns": {
+            "name": "名称",
+            "platform": "目标平台",
+            "version": "版本/镜像",
+            "status": "状态",
+            "updatedAt": "更新时间",
+            "actions": "操作"
+        },
+        "status": {
+            "HEALTHY": "运行中",
+            "STARTING": "部署中",
+            "STOPPING": "卸载中",
+            "STOPPED": "已停止",
+            "UNHEALTHY": "异常"
+        },
+        "form": {
+            "createTitle": "新增网关",
+            "editTitle": "编辑网关",
+            "createDescription": "在目标平台上部署一个新的 nginx 网关。",
+            "editDescription": "更新该网关的配置并重新部署。",
+            "name": "名称",
+            "namePlaceholder": "如：edge-gateway",
+            "descriptionField": "描述",
+            "descriptionPlaceholder": "可选，描述此网关用途",
+            "platform": "目标平台",
+            "platformPlaceholder": "选择被纳管的平台",
+            "appVersion": "nginx 版本",
+            "appVersionPlaceholder": "如：1.28.0",
+            "containerImage": "容器镜像",
+            "containerImagePlaceholder": "如：nginx:alpine",
+            "containerConfigPath": "容器配置路径",
+            "containerConfigPathPlaceholder": "/etc/nginx/conf.d/gateway.conf",
+            "configContent": "nginx 主配置（可选）",
+            "configContentHint": "填写后覆盖 /etc/nginx/nginx.conf；留空时保留镜像或主机的默认主配置。",
+            "submitCreate": "创建",
+            "submitEdit": "保存"
+        },
+        "progress": {
+            "title": "部署进度",
+            "empty": "等待事件推送…",
+            "idle": "暂无进度日志"
+        },
+        "step": {
+            "teardown": "卸载运行时",
+            "delete": "删除记录",
+            "start": "开始",
+            "pull": "拉取镜像",
+            "volume": "创建卷",
+            "config": "写入配置",
+            "create": "启动容器",
+            "started": "已启动",
+            "upload-script": "上传脚本",
+            "upload-config": "上传配置",
+            "install": "安装"
+            ,
+            "validate": "校验配置"
+        },
+        "actions": {
+            "toggleLog": "展开/收起进度日志",
+            "manage": "管理入口与路由"
+        },
+        "success": {
+            "created": "网关已创建，开始部署",
+            "updated": "网关已更新，开始重新部署",
+            "deleted": "网关已删除",
+            "deployed": "网关部署完成"
+        },
+        "deleteDialog": {
+            "title": "删除网关",
+            "description": "确定要删除网关「{name}」吗？将先卸载运行时再删除记录，操作不可撤销。",
+            "confirm": "删除"
+        },
+        "fallback": {
+            "loadFailed": "网关列表加载失败",
+            "saveFailed": "网关保存失败",
+            "deleteFailed": "网关删除失败",
+            "deployFailed": "网关部署失败"
+        }
+    },
+    "files": {
+        "eyebrow": "Object storage",
+        "title": "文件管理",
+        "description": "文件内容保存到 S3 兼容对象存储，可供网关静态路由和后续部署功能复用。",
+        "addButton": "上传文件",
+        "empty": {
+            "title": "尚未上传文件",
+            "description": "上传 ZIP 静态站点包或其他部署文件。"
+        },
+        "columns": {
+            "name": "文件",
+            "size": "大小",
+            "sha256": "SHA-256",
+            "updatedAt": "更新时间"
+        },
+        "form": {
+            "createTitle": "上传文件",
+            "editTitle": "编辑文件",
+            "createDescription": "文件将保存到已配置的 S3 兼容对象存储。",
+            "editDescription": "更新元数据，或选择新文件替换对象内容。",
+            "name": "名称",
+            "descriptionField": "描述",
+            "file": "文件内容",
+            "replace": "替换文件内容（可选）",
+            "choose": "点击选择文件",
+            "limit": "单文件最大 100 MiB"
+        },
+        "deleteConfirm": "确定删除文件「{name}」吗？",
+        "success": {
+            "created": "文件上传完成",
+            "updated": "文件更新完成",
+            "deleted": "文件已删除"
+        },
+        "fallback": {
+            "loadFailed": "文件列表加载失败",
+            "saveFailed": "文件保存失败",
+            "deleteFailed": "文件删除失败"
+        }
+    },
+    "gatewayDetail": {
+        "back": "返回网关列表",
+        "eyebrow": "Traffic map",
+        "description": "配置监听端口、域名、TLS 与下游路由。",
+        "loadFailed": "网关详情加载失败",
+        "saveFailed": "配置保存失败",
+        "entry": {
+            "title": "网关入口",
+            "add": "新增入口",
+            "empty": "尚未配置入口",
+            "select": "选择一个入口查看路由",
+            "create": "新增网关入口",
+            "edit": "编辑网关入口",
+            "formDescription": "每个入口对应一个独立的 nginx server block。",
+            "name": "入口名称",
+            "port": "监听端口",
+            "domains": "响应域名（逗号分隔）",
+            "certificate": "HTTPS 证书",
+            "noCertificate": "不启用 HTTPS",
+            "deleteConfirm": "删除入口「{name}」及其全部路由？"
+        },
+        "route": {
+            "title": "流量路由",
+            "description": "按路径转发到上游服务，或直接服务 ZIP 中的静态资源。",
+            "add": "新增路由",
+            "empty": "这个入口还没有流量路由",
+            "create": "新增网关路由",
+            "edit": "编辑网关路由",
+            "formDescription": "路由保存后会自动校验并重新部署所属网关。",
+            "name": "路由名称",
+            "path": "路径前缀",
+            "typeField": "服务方式",
+            "priority": "优先级",
+            "proxyTarget": "上游地址",
+            "staticFile": "静态资源 ZIP",
+            "chooseFile": "选择已上传的 ZIP",
+            "uploadZip": "直接上传新的静态资源 ZIP",
+            "uploadDescription": "从网关路由表单上传的静态资源",
+            "deleteConfirm": "删除路由「{name}」？",
+            "type": {
+                "PROXY": "转发到服务",
+                "STATIC": "静态资源"
+            }
+        },
+        "success": {
+            "entrySaved": "入口已保存，网关正在重新部署",
+            "entryDeleted": "入口已删除，网关正在重新部署",
+            "routeSaved": "路由已保存，网关正在重新部署",
+            "routeDeleted": "路由已删除，网关正在重新部署"
+        }
+    },
     "shell": {
         "title": "Shell",
         "empty": "暂无 Shell 会话",
@@ -355,6 +543,15 @@
             "credentialNotFound": "所选凭据不存在",
             "unknownType": "未知的平台类型",
             "unknownId": "未知的平台 ID",
+            "notReady": "目标平台未就绪，请稍后重试",
+            "initSystem": {
+                "empty": "请选择主机的 init system"
+            },
+            "notHost": "该平台不是 HOST 类型",
+            "commandFailed": "远程命令执行失败",
+            "uploadFailed": "文件上传到远程平台失败",
+            "shellNotSupported": "该平台不支持网页 Shell",
+            "shellOpenFailed": "网页 Shell 启动失败",
             "dockerHost": {
                 "empty": "Docker 主机地址不能为空",
                 "used": "Docker 主机地址已被使用"
@@ -366,6 +563,75 @@
             "sshUsername": {
                 "empty": "SSH 用户名不能为空"
             }
+        },
+        "gateway": {
+            "notFound": "网关不存在",
+            "alreadyExists": "网关名称已被占用",
+            "platformType": {
+                "unknown": "未知的平台类型"
+            },
+            "containerImage": {
+                "empty": "容器镜像不能为空"
+            },
+            "containerConfigPath": {
+                "empty": "容器配置路径不能为空"
+            },
+            "appVersion": {
+                "empty": "nginx 版本不能为空"
+            },
+            "configWriteFailed": "网关配置写入失败",
+            "installFailed": "网关安装失败",
+            "name": {
+                "invalid": "网关名称只能包含字母、数字、点、下划线和连字符"
+            },
+            "mainConfig": {
+                "includeMissing": "自定义 nginx 主配置必须包含 include /etc/nginx/conf.d/*.conf;"
+            },
+            "nginxConfig": {
+                "unsupported": "nginx 配置包含暂不支持的指令或结构"
+            },
+            "certificate": {
+                "writeFailed": "HTTPS 证书私钥写入失败"
+            },
+            "staticFile": {
+                "readFailed": "静态资源 ZIP 读取或解压失败"
+            },
+            "bundleFailed": "网关部署包生成失败"
+        },
+        "gatewayEntryPoint": {
+            "notFound": "网关入口不存在",
+            "alreadyExists": "同一网关下已存在相同名称或监听端口的入口",
+            "name": {
+                "invalid": "入口名称只能包含字母、数字、点、下划线和连字符"
+            },
+            "domain": {
+                "invalid": "响应域名格式无效"
+            },
+            "certificate": {
+                "invalid": "HTTPS 证书必须引用 X.509 类型凭据"
+            }
+        },
+        "gatewayRoute": {
+            "notFound": "网关路由不存在",
+            "alreadyExists": "该入口下已存在同名路由",
+            "path": {
+                "invalid": "路由路径必须以 / 开头"
+            },
+            "proxyTarget": {
+                "empty": "转发路由的上游地址不能为空",
+                "invalid": "上游地址必须是有效的 HTTP 或 HTTPS URL"
+            },
+            "staticFile": {
+                "empty": "静态资源路由必须选择 ZIP 文件",
+                "zipRequired": "静态资源文件必须是 ZIP 压缩包",
+                "invalid": "静态资源 ZIP 内容或目录结构无效"
+            }
+        },
+        "file": {
+            "notFound": "文件未找到",
+            "occupied": "文件正在使用中",
+            "empty": "文件为空",
+            "tooLarge": "文件超出最大限制"
         }
     },
     "validation": {
@@ -389,6 +655,43 @@
                 "max": "SSH 端口不能大于 65535"
             }
         },
+        "gateway": {
+            "name": {
+                "notBlank": "网关名称不能为空"
+            },
+            "platformId": {
+                "notNull": "请选择目标平台"
+            },
+            "nginxConfig": {
+                "notBlank": "nginx 配置内容不能为空"
+            }
+        },
+        "gatewayEntryPoint": {
+            "name": {
+                "notBlank": "入口名称不能为空"
+            },
+            "port": {
+                "min": "监听端口不能小于 1",
+                "max": "监听端口不能大于 65535"
+            },
+            "domains": {
+                "notEmpty": "请至少填写一个响应域名"
+            }
+        },
+        "gatewayRoute": {
+            "name": {
+                "notBlank": "路由名称不能为空"
+            },
+            "path": {
+                "notBlank": "路由路径不能为空"
+            },
+            "type": {
+                "notNull": "请选择路由类型"
+            },
+            "priority": {
+                "min": "路由优先级不能小于 0"
+            }
+        },
         "username": {
             "notBlank": "用户名不能为空",
             "length": "用户名长度应在 1-32 之间"
@@ -396,6 +699,11 @@
         "password": {
             "notEmpty": "密码不能为空",
             "length": "密码至少 6 位"
+        },
+        "file": {
+            "name": {
+                "notBlank": "文件名不能为空"
+            }
         }
     }
 }

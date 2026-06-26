@@ -14,6 +14,7 @@ import win.masteryyh.masteryyhsystem.base.utils.AsyncTaskExecutor;
 @EnableScheduling
 public class Application {
     static void main(String[] args) {
+        AsyncTaskExecutor.installDefaultUncaughtExceptionHandler();
         SpringApplication.run(Application.class, args);
     }
 
