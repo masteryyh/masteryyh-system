@@ -57,7 +57,7 @@ jobs:
             fi
           fi
 
-          image_tag="$(date -u +'%Y%m%d%H%M')"
+          image_tag="$(TZ=Asia/Shanghai date +'%Y%m%d%H%M')"
 
           {
             echo "BACKEND_CHANGED=$backend_changed"
