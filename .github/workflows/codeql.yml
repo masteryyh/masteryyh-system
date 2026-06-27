@@ -1,0 +1,101 @@
+name: CodeQL Code Analysis
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changes
+    if: github.event.pull_request.head.ref != 'main'
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.detect.outputs.backend_changed }}
+      frontend_changed: ${{ steps.detect.outputs.frontend_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed areas
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_ref="${{ github.event.pull_request.base.sha }}"
+
+          backend_changed=false
+          frontend_changed=false
+
+          if ! git diff --quiet "$base_ref" HEAD -- backend; then
+            backend_changed=true
+          fi
+
+          if ! git diff --quiet "$base_ref" HEAD -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+            frontend_changed=true
+          fi
+
+          {
+            echo "BACKEND_CHANGED=$backend_changed"
+            echo "FRONTEND_CHANGED=$frontend_changed"
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "backend_changed=$backend_changed"
+            echo "frontend_changed=$frontend_changed"
+          } >> "$GITHUB_OUTPUT"
+
+  analyze-backend:
+    name: Analyze backend
+    needs: changes
+    if: needs.changes.outputs.backend_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: java-kotlin
+          build-mode: none
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:java-kotlin/component:backend
+
+  analyze-frontend:
+    name: Analyze frontend
+    needs: changes
+    if: needs.changes.outputs.frontend_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:javascript-typescript/component:frontend
