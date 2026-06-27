@@ -1,0 +1,157 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-images-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.detect.outputs.backend_changed }}
+      frontend_changed: ${{ steps.detect.outputs.frontend_changed }}
+      image_tag: ${{ steps.detect.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed areas
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          empty_tree="$(git hash-object -t tree /dev/null)"
+          if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+            base_ref="$empty_tree"
+          else
+            base_ref="${{ github.event.before }}"
+          fi
+
+          backend_changed=false
+          frontend_changed=false
+
+          if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- backend; then
+            backend_changed=true
+          fi
+
+          if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+            frontend_changed=true
+          fi
+
+          image_tag="$(date -u +'%Y%m%d%H%M')"
+
+          {
+            echo "BACKEND_CHANGED=$backend_changed"
+            echo "FRONTEND_CHANGED=$frontend_changed"
+            echo "IMAGE_TAG=$image_tag"
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "backend_changed=$backend_changed"
+            echo "frontend_changed=$frontend_changed"
+            echo "image_tag=$image_tag"
+          } >> "$GITHUB_OUTPUT"
+
+  build-backend:
+    name: Build backend image
+    needs: changes
+    if: needs.changes.outputs.backend_changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/system-backend
+      IMAGE_TAG: ${{ needs.changes.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build jar
+        working-directory: backend
+        run: ./gradlew clean bootJar --no-daemon --console=plain
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:nightly
+
+  build-frontend:
+    name: Build frontend image
+    needs: changes
+    if: needs.changes.outputs.frontend_changed == 'true'
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/masteryyh-system-frontend
+      IMAGE_TAG: ${{ needs.changes.outputs.image_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11.1.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static assets
+        run: pnpm --filter frontend build
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_NAME }}:nightly
