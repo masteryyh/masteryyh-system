@@ -3,7 +3,7 @@ FROM node:lts-slim AS builder
 ARG VITE_BACKEND_URL
 ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
 
-RUN apt-get update && apt-get install git
+RUN apt-get update && apt-get install git -y
 
 WORKDIR /app
 
