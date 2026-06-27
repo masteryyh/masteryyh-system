@@ -50,6 +50,11 @@ jobs:
           if ! git diff --quiet "$base_ref" HEAD -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
             frontend_changed=true
           fi
+          
+          if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- .github; then
+            backend_changed=true
+            frontend_changed=true
+          fi
 
           {
             echo "BACKEND_CHANGED=$backend_changed"
