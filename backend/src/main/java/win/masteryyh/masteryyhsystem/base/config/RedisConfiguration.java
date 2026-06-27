@@ -7,12 +7,14 @@ import org.redisson.spring.data.connection.RedissonConnectionFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 public class RedisConfiguration {
@@ -22,8 +24,11 @@ public class RedisConfiguration {
     }
 
     @Bean(destroyMethod = "shutdown")
-    public RedissonClient redissonClient(@Value("${spring.data.redis.redisson.file}") Resource configFile) throws IOException {
-        Config config = Config.fromYAML(configFile.getInputStream());
+    public RedissonClient redissonClient(@Value("${spring.data.redis.redisson.file}") Resource configFile,
+                                         Environment environment) throws IOException {
+        String file = new String(configFile.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        file = environment.resolvePlaceholders(file);
+        Config config = Config.fromYAML(file);
         return Redisson.create(config);
     }
 

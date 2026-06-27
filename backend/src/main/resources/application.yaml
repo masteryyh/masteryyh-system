@@ -1,7 +1,9 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
+  config:
+    import: "optional:file:.env[.properties]"
   threads:
     virtual:
       enabled: true
@@ -12,9 +14,9 @@ spring:
       max-file-size: 100MB
       max-request-size: 105MB
   datasource:
-    url: jdbc:postgresql://truenas.internal.masteryyh.win:5432/masteryyh_test
-    username: postgres
-    password: abc123456
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/test}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:abc123456}
   data:
     redis:
       redisson:
@@ -32,22 +34,22 @@ management:
         include: "*"
 
 system:
-  jwt-secret: change-this-secret-to-at-least-32-characters
+  jwt-secret: ${JWT_SECRET:change-this-secret-to-at-least-32-characters}
   admin:
-    username: admin
-    password: abc123456
-    email: admin@example.com
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:abc123456}
+    email: ${ADMIN_EMAIL:admin@example.com}
   credential:
     expiring-soon-days: 30
   file:
     max-size: 104857600
     s3:
-      endpoint: https://truenas.internal.masteryyh.win:7878
-      region: cn-south-1
-      bucket: masteryyh-system
-      access-key: RAu8Re4BUUSKRH7DvNWr
-      secret-key: 98UwzUgVqBehMXV9yfgW38Y4WYNiwLjzKNpzKZJ7
-      path-style-access: true
+      endpoint: ${S3_ENDPOINT:https://s3.us-east-1.amazonaws.com}
+      region: ${S3_REGION:us-east-1}
+      bucket: ${S3_BUCKET:masteryyh-system}
+      access-key: ${S3_ACCESS_KEY:some-access-key}
+      secret-key: ${S3_SECRET_KEY:some-secret-key}
+      path-style-access: ${S3_PATH_STYLE_ACCESS:true}
   gateway:
     max-static-files: 10000
     max-static-uncompressed-size: 536870912
