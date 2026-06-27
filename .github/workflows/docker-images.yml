@@ -55,6 +55,11 @@ jobs:
             if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
               frontend_changed=true
             fi
+
+            if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- .github; then
+              backend_changed=true
+              frontend_changed=true
+            fi
           fi
 
           image_tag="$(TZ=Asia/Shanghai date +'%Y%m%d%H%M')"
@@ -121,7 +126,7 @@ jobs:
     if: needs.changes.outputs.frontend_changed == 'true'
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/masteryyh-system-frontend
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/system-frontend
       IMAGE_TAG: ${{ needs.changes.outputs.image_tag }}
     steps:
       - name: Checkout
