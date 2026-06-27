@@ -352,22 +352,9 @@ public class CryptoUtils {
 
     public static void validateCertificateAndPrivateKey(X509Certificate certificate, PrivateKey privateKey) {
         PublicKey publicKey = certificate.getPublicKey();
-        if (!Objects.equals(publicKey.getAlgorithm(), privateKey.getAlgorithm())) {
-            throw new BusinessException(400, "error.credential.certificate.mismatch",
-                    "Certificate public key algorithm does not match private key");
-        }
-
-        if (publicKey instanceof RSAPublicKey rsaPublic
-                && privateKey instanceof java.security.interfaces.RSAPrivateKey rsaPrivate) {
-            if (!rsaPublic.getModulus().equals(rsaPrivate.getModulus())) {
-                throw new BusinessException(400, "error.credential.certificate.mismatch",
-                        "Certificate public key does not match the provided private key");
-            }
-            return;
-        }
 
         String signatureAlgorithm = switch (privateKey.getAlgorithm()) {
-            case "EC" -> "SHA256withECDSA";
+            case "EC", "ECDSA" -> "SHA256withECDSA";
             case "DSA" -> "SHA256withDSA";
             case "EdDSA", "Ed25519" -> "Ed25519";
             case "Ed448" -> "Ed448";
