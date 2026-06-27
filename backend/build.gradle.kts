@@ -81,10 +81,15 @@ val generateBuildInfo by tasks.registering {
             }
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: "unknown"
 
-        val versionEnv = System.getenv("VERSION")?.takeIf { it.isNotBlank() }
-        val version = versionEnv ?: "dirty-$commitHash"
+        val buildDateTime = LocalDateTime.now()
+        val versionTimestamp = buildDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
+        val version = if (System.getenv("CI").isNullOrBlank()) {
+            "dirty-$versionTimestamp"
+        } else {
+            versionTimestamp
+        }
 
-        val buildTime = LocalDateTime.now()
+        val buildTime = buildDateTime
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
         val packageDir = buildInfoOutputDir.get()

@@ -1,4 +1,5 @@
 import { AppError } from "@/lib/errors";
+import { backendHttpUrl } from "@/lib/backend-url";
 import type { PagedResponse } from "@/types/api";
 
 /**
@@ -67,7 +68,7 @@ export class BaseApiClient {
 
         let response: Response;
         try {
-            response = await fetch(path, { ...init, headers });
+            response = await fetch(backendHttpUrl(path), { ...init, headers });
         } catch (error) {
             throw new AppError(
                 0,
@@ -110,7 +111,7 @@ export class BaseApiClient {
         if (this.context.token) {
             headers.set("Authorization", `Bearer ${this.context.token}`);
         }
-        const response = await fetch(path, { headers });
+        const response = await fetch(backendHttpUrl(path), { headers });
         if (response.status === 401) {
             this.context.onUnauthorized?.();
             throw new AppError(401, "error.unauthorized", "Login session expired");

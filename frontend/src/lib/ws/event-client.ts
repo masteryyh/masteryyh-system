@@ -1,3 +1,5 @@
+import { backendWebSocketUrl } from "@/lib/backend-url";
+
 /**
  * 通用事件流 WebSocket 客户端（/v1/ws）。
  *
@@ -94,8 +96,6 @@ export class EventStreamClient {
 }
 
 function buildEventWsUrl(token: string): string {
-    const loc = window.location;
-    const proto = loc.protocol === "https:" ? "wss:" : "ws:";
     const params = new URLSearchParams({ token });
-    return `${proto}//${loc.host}/v1/ws?${params.toString()}`;
+    return backendWebSocketUrl("/v1/ws", params);
 }

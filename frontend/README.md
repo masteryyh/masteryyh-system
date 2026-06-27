@@ -1,5 +1,18 @@
 # React + TypeScript + Vite
 
+## Backend address
+
+Set `VITE_BACKEND_URL` when the frontend should call a backend origin other than the current page origin.
+
+```bash
+VITE_BACKEND_URL=http://localhost:8080 pnpm --filter frontend dev
+VITE_BACKEND_URL=https://api.example.com pnpm --filter frontend build
+```
+
+Leave it empty to keep using relative `/v1` requests; in development the Vite proxy forwards those requests to `http://localhost:8080`.
+
+The production image serves the React app through nginx. It falls back page routes such as `/login` to `index.html`, while `/v1` still returns 404 unless the app was built with an absolute `VITE_BACKEND_URL` or an upstream reverse proxy handles that path before it reaches this container.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

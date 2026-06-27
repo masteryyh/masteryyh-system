@@ -18,7 +18,7 @@ spring:
   data:
     redis:
       redisson:
-        file: redisson.yaml
+        file: classpath:redisson.yaml
   jpa:
     hibernate:
       ddl-auto: update

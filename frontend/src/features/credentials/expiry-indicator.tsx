@@ -1,5 +1,5 @@
 import { useTranslation } from "@/hooks/use-translation";
-import { formatDate } from "@/lib/formatters";
+import { formatDate, parseApiDate } from "@/lib/formatters";
 
 /**
  * 凭据过期 badge：
@@ -25,7 +25,7 @@ export function ExpiryIndicator({
         );
     }
 
-    const expiresOn = new Date(expiresAt);
+    const expiresOn = parseApiDate(expiresAt);
     const now = new Date();
     const days = Math.floor(
         (expiresOn.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),

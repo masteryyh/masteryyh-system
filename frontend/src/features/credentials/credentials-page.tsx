@@ -47,7 +47,13 @@ import { Label } from "@/components/ui/label";
 import { useApi } from "@/hooks/use-api";
 import { useNotify } from "@/hooks/use-notify";
 import { useTranslation } from "@/hooks/use-translation";
-import { formatCurveName, formatDate, formatPublicKeyAlgorithm, formatSshKeyType } from "@/lib/formatters";
+import {
+    formatCurveName,
+    formatDate,
+    formatPublicKeyAlgorithm,
+    formatSshKeyType,
+    parseApiDateForPicker,
+} from "@/lib/formatters";
 import { CredentialDetailDialog } from "@/features/credentials/credential-detail-dialog";
 import { CredentialStatusBadge } from "@/features/credentials/credential-status-badge";
 import { ExpiryIndicator } from "@/features/credentials/expiry-indicator";
@@ -167,7 +173,9 @@ export function CredentialsPage() {
             name: credential.name,
             description: credential.description ?? "",
             credentialType: credential.credentialType,
-            expiresAt: credential.expiresAt ? new Date(credential.expiresAt) : null,
+            expiresAt: credential.expiresAt
+                ? parseApiDateForPicker(credential.expiresAt)
+                : null,
         });
         setFormError(null);
         setFormOpen(true);

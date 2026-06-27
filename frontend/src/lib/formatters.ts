@@ -1,13 +1,86 @@
 import type { SSHKeyType } from "@/types/api";
 
+const DISPLAY_TIME_ZONE = "Asia/Shanghai";
+
+const DATE_TIME_WITHOUT_ZONE_PATTERN =
+    /^(\d{4})-(\d{2})-(\d{2})(?:T|\s)(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?$/;
+const TIME_ZONE_SUFFIX_PATTERN = /(?:Z|[+-]\d{2}:?\d{2})$/i;
+
+const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+});
+
+const dateTimePartsFormatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+});
+
+export function parseApiDate(value: string): Date {
+    const trimmed = value.trim();
+    if (TIME_ZONE_SUFFIX_PATTERN.test(trimmed)) {
+        return new Date(trimmed);
+    }
+
+    const matched = DATE_TIME_WITHOUT_ZONE_PATTERN.exec(trimmed);
+    if (!matched) {
+        return new Date(trimmed);
+    }
+
+    const [, year, month, day, hour, minute, second = "0", fraction = "0"] =
+        matched;
+    const millisecond = Number(fraction.padEnd(3, "0").slice(0, 3));
+
+    return new Date(
+        Date.UTC(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            Number(hour),
+            Number(minute),
+            Number(second),
+            millisecond,
+        ),
+    );
+}
+
+export function parseApiDateForPicker(value: string): Date {
+    const parsed = parseApiDate(value);
+    if (Number.isNaN(parsed.getTime())) {
+        return parsed;
+    }
+
+    const parts = Object.fromEntries(
+        dateTimePartsFormatter
+            .formatToParts(parsed)
+            .map((part) => [part.type, part.value]),
+    );
+
+    return new Date(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second),
+        parsed.getMilliseconds(),
+    );
+}
+
 export function formatDate(value: string): string {
-    return new Intl.DateTimeFormat("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    }).format(new Date(value));
+    const date = parseApiDate(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return dateTimeFormatter.format(date);
 }
 
 export function formatFingerprint(value: string): string {

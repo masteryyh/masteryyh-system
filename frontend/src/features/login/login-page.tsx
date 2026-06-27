@@ -19,6 +19,7 @@ import { useSession } from "@/hooks/use-session";
 import { useTranslation } from "@/hooks/use-translation";
 import { useVersion } from "@/hooks/use-version";
 import { AppError } from "@/lib/errors";
+import { formatDate } from "@/lib/formatters";
 
 export function LoginPage() {
     const navigate = useNavigate();
@@ -78,7 +79,7 @@ export function LoginPage() {
                     </div>
                     <div className="border-t border-sidebar-border p-8 font-mono text-xs text-sidebar-foreground/60">
                         {versionInfo
-                            ? `${versionInfo.version} · ${versionInfo.commitHash} · ${versionInfo.buildTime}`
+                            ? `${versionInfo.version} · ${versionInfo.commitHash} · ${formatDate(versionInfo.buildTime)}`
                             : versionLoadFailed
                               ? t("app.footerLoadFailed")
                               : t("app.footerLoading")}

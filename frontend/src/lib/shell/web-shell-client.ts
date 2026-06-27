@@ -1,3 +1,5 @@
+import { backendWebSocketUrl } from "@/lib/backend-url";
+
 /**
  * WebShell WebSocket 客户端。
  *
@@ -104,12 +106,10 @@ function buildWsUrl(
     cols: number,
     rows: number,
 ): string {
-    const loc = window.location;
-    const proto = loc.protocol === "https:" ? "wss:" : "ws:";
     const params = new URLSearchParams({
         token,
         cols: String(cols),
         rows: String(rows),
     });
-    return `${proto}//${loc.host}/v1/webshell/${platformId}?${params.toString()}`;
+    return backendWebSocketUrl(`/v1/webshell/${platformId}`, params);
 }
