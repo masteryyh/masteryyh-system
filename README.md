@@ -1,6 +1,6 @@
 # masteryyh-system
 
-A management system from my own homelab, meant to control everything.
+A management system for my own homelab, built for controlling everything.
 
 ## License
 
