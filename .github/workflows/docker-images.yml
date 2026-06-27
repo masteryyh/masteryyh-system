@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,7 +15,7 @@ concurrency:
 
 jobs:
   changes:
-    name: Detect changes
+    name: Resolve build scope
     runs-on: ubuntu-latest
     outputs:
       backend_changed: ${{ steps.detect.outputs.backend_changed }}
@@ -22,32 +23,38 @@ jobs:
       image_tag: ${{ steps.detect.outputs.image_tag }}
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_dispatch'
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Detect changed areas
+      - name: Resolve changed areas
         id: detect
         shell: bash
         run: |
           set -euo pipefail
 
-          empty_tree="$(git hash-object -t tree /dev/null)"
-          if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
-            base_ref="$empty_tree"
-          else
-            base_ref="${{ github.event.before }}"
-          fi
-
-          backend_changed=false
-          frontend_changed=false
-
-          if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- backend; then
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             backend_changed=true
-          fi
-
-          if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
             frontend_changed=true
+          else
+            empty_tree="$(git hash-object -t tree /dev/null)"
+            if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+              base_ref="$empty_tree"
+            else
+              base_ref="${{ github.event.before }}"
+            fi
+
+            backend_changed=false
+            frontend_changed=false
+
+            if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- backend; then
+              backend_changed=true
+            fi
+
+            if ! git diff --quiet "$base_ref" "${{ github.sha }}" -- frontend package.json pnpm-lock.yaml pnpm-workspace.yaml; then
+              frontend_changed=true
+            fi
           fi
 
           image_tag="$(date -u +'%Y%m%d%H%M')"
@@ -135,7 +142,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build static assets
-        run: pnpm --filter frontend build
+        env:
+          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${VITE_BACKEND_URL:-}" ]]; then
+            echo "::error title=Missing VITE_BACKEND_URL::Set the repository secret VITE_BACKEND_URL before building the frontend image."
+            exit 1
+          fi
+
+          pnpm --filter frontend build
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
