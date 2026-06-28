@@ -299,7 +299,8 @@
             "STARTING": "部署中",
             "STOPPING": "卸载中",
             "STOPPED": "已停止",
-            "UNHEALTHY": "异常"
+            "UNHEALTHY": "异常",
+            "pendingChanges": "待应用"
         },
         "form": {
             "createTitle": "新增网关",
@@ -345,11 +346,12 @@
         },
         "actions": {
             "toggleLog": "展开/收起进度日志",
-            "manage": "管理入口与路由"
+            "manage": "管理入口与路由",
+            "deploy": "应用变更"
         },
         "success": {
-            "created": "网关已创建，开始部署",
-            "updated": "网关已更新，开始重新部署",
+            "created": "网关已创建，待部署",
+            "updated": "网关已更新，待应用",
             "deleted": "网关已删除",
             "deployed": "网关部署完成"
         },
@@ -410,6 +412,19 @@
         "description": "配置监听端口、域名、TLS 与下游路由。",
         "loadFailed": "网关详情加载失败",
         "saveFailed": "配置保存失败",
+        "pending": "存在尚未应用到运行时的变更",
+        "deploy": {
+            "apply": "应用变更",
+            "redeploy": "重新部署",
+            "title": "部署网关",
+            "descriptionPending": "确认后会汇总当前网关资源，重新生成配置、证书和静态资源，并重建运行时。",
+            "descriptionRedeploy": "当前没有待应用变更；确认后仍会重新生成资源并重建运行时。",
+            "changed": "有变更",
+            "changedCount": "{count} 个入口有配置变更",
+            "noEntryPoints": "当前没有入口配置；仍可重新部署网关运行时。",
+            "deploying": "部署中…",
+            "confirm": "确认部署"
+        },
         "entry": {
             "title": "网关入口",
             "add": "新增入口",
@@ -432,7 +447,7 @@
             "empty": "这个入口还没有流量路由",
             "create": "新增网关路由",
             "edit": "编辑网关路由",
-            "formDescription": "路由保存后会自动校验并重新部署所属网关。",
+            "formDescription": "路由保存后会生成待应用配置，需要手动确认部署。",
             "name": "路由名称",
             "path": "路径前缀",
             "typeField": "服务方式",
@@ -449,10 +464,12 @@
             }
         },
         "success": {
-            "entrySaved": "入口已保存，网关正在重新部署",
-            "entryDeleted": "入口已删除，网关正在重新部署",
-            "routeSaved": "路由已保存，网关正在重新部署",
-            "routeDeleted": "路由已删除，网关正在重新部署"
+            "entrySaved": "入口已保存，待应用",
+            "entryDeleted": "入口已删除，待应用",
+            "routeSaved": "路由已保存，待应用",
+            "routeDeleted": "路由已删除，待应用",
+            "deployStarted": "网关部署已开始",
+            "deployed": "网关部署完成"
         }
     },
     "shell": {

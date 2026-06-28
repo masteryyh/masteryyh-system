@@ -143,6 +143,7 @@ export interface GatewayConfig {
     localConfigPath: string | null;
     configContent: string | null;
     status: GatewayStatus;
+    pendingChanges: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -197,6 +198,8 @@ export interface GatewayEntryPoint {
     listenPort: number;
     domainNames: string[];
     certificateCredentialId: string | null;
+    currentConfigContent: string | null;
+    lastConfigContent: string | null;
     createdAt: string;
     updatedAt: string;
 }

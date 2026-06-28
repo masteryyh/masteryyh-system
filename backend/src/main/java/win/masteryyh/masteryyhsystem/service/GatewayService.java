@@ -29,6 +29,8 @@ import win.masteryyh.masteryyhsystem.base.utils.NginxHelper;
 import win.masteryyh.masteryyhsystem.base.websocket.EventBroadcaster;
 import win.masteryyh.masteryyhsystem.model.AppPlatform;
 import win.masteryyh.masteryyhsystem.model.GatewayConfig;
+import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
+import win.masteryyh.masteryyhsystem.model.GatewayRoute;
 import win.masteryyh.masteryyhsystem.model.dto.AddGatewayConfigDto;
 import win.masteryyh.masteryyhsystem.model.dto.DeploymentBundle;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayConfigDto;
@@ -128,17 +130,23 @@ public class GatewayService {
         return GatewayConfigDto.from(cfg);
     }
 
-    public void redeploy(UUID gatewayId) {
-        try {
-            gatewayConfigRepository.findById(gatewayId).ifPresent(cfg -> {
-                cfg.setStatus(GatewayStatus.STARTING);
-                gatewayConfigRepository.save(cfg);
-            });
-            provisionGateway(gatewayId, true);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            logger.warn("Gateway redeploy interrupted for {}: ", gatewayId, e);
-        }
+    @Transactional(rollbackFor = Exception.class)
+    public void requestRedeploy(UUID gatewayId) {
+        GatewayConfig cfg = gatewayConfigRepository.findById(gatewayId)
+                .orElseThrow(() -> new BusinessException(404, "error.gateway.notFound", "Gateway not found"));
+        boolean isUpdate = hasRuntime(cfg);
+        refreshGatewayCandidateConfigs(gatewayId);
+        cfg.setStatus(GatewayStatus.STARTING);
+        gatewayConfigRepository.saveAndFlush(cfg);
+
+        AsyncTaskExecutor.afterCommit(() -> {
+            try {
+                provisionGateway(gatewayId, isUpdate);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.warn("Gateway redeploy interrupted for {}: ", gatewayId, e);
+            }
+        });
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -160,17 +168,9 @@ public class GatewayService {
         cfg.setContainerImage(data.containerImage());
         cfg.setContainerConfigPath(data.containerConfigPath());
         cfg.setConfigContent(data.configContent());
-        cfg.setStatus(GatewayStatus.STARTING);
-        cfg = gatewayConfigRepository.saveAndFlush(cfg);
-
-        final UUID gatewayId = cfg.getId();
-        AsyncTaskExecutor.afterCommit(() -> {
-            try {
-                provisionGateway(gatewayId, false);
-            } catch (InterruptedException e) {
-                logger.warn("Error occurred when deploying gateway {}: ", gatewayId, e);
-            }
-        });
+        cfg.setStatus(GatewayStatus.STOPPED);
+        cfg.setPendingChanges(true);
+        gatewayConfigRepository.saveAndFlush(cfg);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -192,16 +192,34 @@ public class GatewayService {
         cfg.setContainerImage(data.containerImage());
         cfg.setContainerConfigPath(data.containerConfigPath());
         cfg.setConfigContent(data.configContent());
-        cfg.setStatus(GatewayStatus.STARTING);
+        cfg.setPendingChanges(true);
         gatewayConfigRepository.saveAndFlush(cfg);
+    }
 
-        AsyncTaskExecutor.afterCommit(() -> {
-            try {
-                provisionGateway(id, true);
-            } catch (Exception e) {
-                logger.warn("Error occurred when deploying gateway {}: ", id, e);
-            }
+    public void markGatewayPending(UUID gatewayId) {
+        gatewayConfigRepository.findById(gatewayId).ifPresent(cfg -> {
+            cfg.setPendingChanges(true);
+            gatewayConfigRepository.save(cfg);
         });
+    }
+
+    public void markEntryPointPending(UUID gatewayId, UUID entryPointId) {
+        refreshEntryPointCandidateConfig(entryPointId);
+        markGatewayPending(gatewayId);
+    }
+
+    public void refreshEntryPointCandidateConfig(UUID entryPointId) {
+        entryPointRepository.findById(entryPointId).ifPresent(entryPoint -> {
+            List<GatewayRoute> routes =
+                    routeRepository.findByEntryPointIdOrderByPriorityDescPathPrefixAsc(entryPointId);
+            entryPoint.setCurrentConfigContent(nginxConfigCodec.write(entryPoint, routes));
+            entryPointRepository.save(entryPoint);
+        });
+    }
+
+    public void refreshGatewayCandidateConfigs(UUID gatewayId) {
+        entryPointRepository.findByGatewayIdOrderByListenPortAscNameAsc(gatewayId)
+                .forEach(entryPoint -> refreshEntryPointCandidateConfig(entryPoint.getId()));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -284,14 +302,14 @@ public class GatewayService {
 
             Optional<AppPlatform> platformOptional = appPlatformRepository.findById(cfg.getPlatformId());
             if (platformOptional.isEmpty()) {
-                markUnhealthy(gatewayId);
+                markProvisionFailed(gatewayId, isUpdate);
                 eventBroadcaster.publish(channel, "failed", Map.of("message", "Linked platform no longer exists"));
                 return;
             }
             AppPlatform platform = platformOptional.get();
 
             if (!isPlatformReady(platform)) {
-                markUnhealthy(gatewayId);
+                markProvisionFailed(gatewayId, isUpdate);
                 eventBroadcaster.publish(channel, "failed",
                         Map.of("message", "Platform is not connected/healthy"));
                 return;
@@ -309,7 +327,9 @@ public class GatewayService {
 
             gatewayConfigRepository.findById(gatewayId).ifPresent((fresh) -> {
                 fresh.setStatus(GatewayStatus.HEALTHY);
+                fresh.setPendingChanges(false);
                 gatewayConfigRepository.save(fresh);
+                markEntryPointsApplied(gatewayId);
 
                 if (platform.getPlatformType().equals(PlatformType.DOCKER)) {
                     eventBroadcaster.publish(channel, "done", Map.of(
@@ -324,7 +344,7 @@ public class GatewayService {
             });
         } catch (Exception e) {
             logger.warn("Provisioning failed for gateway {}: ", gatewayId, e);
-            markUnhealthy(gatewayId);
+            markProvisionFailed(gatewayId, isUpdate);
             eventBroadcaster.publish(channel, "failed", Map.of("message", e.getMessage()));
         } finally {
             if (lock.isLocked() && lock.isHeldByCurrentThread()) {
@@ -339,15 +359,29 @@ public class GatewayService {
                 : sshManager.getStatus(platform.getId());
     }
 
-    private void markUnhealthy(UUID gatewayId) {
+    private void markProvisionFailed(UUID gatewayId, boolean hadRuntime) {
         try {
             gatewayConfigRepository.findById(gatewayId).ifPresent((cfg) -> {
-                cfg.setStatus(GatewayStatus.UNHEALTHY);
+                cfg.setStatus(hadRuntime ? GatewayStatus.HEALTHY : GatewayStatus.UNHEALTHY);
+                cfg.setPendingChanges(true);
                 gatewayConfigRepository.save(cfg);
             });
         } catch (Exception e) {
-            logger.warn("Failed to mark gateway {} unhealthy: ", gatewayId, e);
+            logger.warn("Failed to mark gateway {} after provision failure: ", gatewayId, e);
         }
+    }
+
+    private void markEntryPointsApplied(UUID gatewayId) {
+        List<GatewayEntryPoint> entryPoints =
+                entryPointRepository.findByGatewayIdOrderByListenPortAscNameAsc(gatewayId);
+        entryPoints.forEach(entryPoint -> {
+            entryPoint.setLastConfigContent(entryPoint.getCurrentConfigContent());
+            entryPointRepository.save(entryPoint);
+        });
+    }
+
+    private static boolean hasRuntime(GatewayConfig cfg) {
+        return cfg.getContainerId() != null || cfg.getSystemdServiceName() != null;
     }
 
     private void provisionDocker(GatewayConfig cfg, boolean isUpdate, String channel) throws Exception {

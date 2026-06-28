@@ -60,6 +60,12 @@ export class GatewaysApi {
         });
     }
 
+    deploy(id: string): Promise<void> {
+        return this.client.request<void>(`/v1/gateways/deploy/${id}`, {
+            method: "POST",
+        });
+    }
+
     listEntryPoints(gatewayId: string): Promise<GatewayEntryPoint[]> {
         return this.client.request<GatewayEntryPoint[]>(
             `/v1/gateways/${gatewayId}/entry-points/list`,

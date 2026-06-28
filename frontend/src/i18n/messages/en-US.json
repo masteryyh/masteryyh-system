@@ -299,7 +299,8 @@
             "STARTING": "Deploying",
             "STOPPING": "Removing",
             "STOPPED": "Stopped",
-            "UNHEALTHY": "Unhealthy"
+            "UNHEALTHY": "Unhealthy",
+            "pendingChanges": "Pending"
         },
         "form": {
             "createTitle": "New gateway",
@@ -344,11 +345,12 @@
         },
         "actions": {
             "toggleLog": "Toggle progress log",
-            "manage": "Manage entry points and routes"
+            "manage": "Manage entry points and routes",
+            "deploy": "Apply changes"
         },
         "success": {
-            "created": "Gateway created, deploying",
-            "updated": "Gateway updated, redeploying",
+            "created": "Gateway created, pending deploy",
+            "updated": "Gateway updated, pending apply",
             "deleted": "Gateway deleted",
             "deployed": "Gateway deployed"
         },
@@ -409,6 +411,19 @@
         "description": "Configure listening ports, domains, TLS, and downstream routes.",
         "loadFailed": "Failed to load gateway details",
         "saveFailed": "Failed to save configuration",
+        "pending": "Changes have not been applied to the runtime yet",
+        "deploy": {
+            "apply": "Apply changes",
+            "redeploy": "Redeploy",
+            "title": "Deploy gateway",
+            "descriptionPending": "This will regenerate configs, certificates, and static resources, then rebuild the gateway runtime.",
+            "descriptionRedeploy": "There are no pending changes; this will still regenerate resources and rebuild the runtime.",
+            "changed": "changed",
+            "changedCount": "{count} entry point(s) changed",
+            "noEntryPoints": "No entry points are configured. You can still redeploy the gateway runtime.",
+            "deploying": "Deploying…",
+            "confirm": "Deploy"
+        },
         "entry": {
             "title": "Entry points",
             "add": "New entry point",
@@ -431,7 +446,7 @@
             "empty": "This entry point has no routes",
             "create": "New gateway route",
             "edit": "Edit gateway route",
-            "formDescription": "Saving a route validates and redeploys its gateway.",
+            "formDescription": "Saving a route creates pending config that must be deployed manually.",
             "name": "Route name",
             "path": "Path prefix",
             "typeField": "Service mode",
@@ -448,10 +463,12 @@
             }
         },
         "success": {
-            "entrySaved": "Entry point saved; gateway redeploying",
-            "entryDeleted": "Entry point deleted; gateway redeploying",
-            "routeSaved": "Route saved; gateway redeploying",
-            "routeDeleted": "Route deleted; gateway redeploying"
+            "entrySaved": "Entry point saved, pending apply",
+            "entryDeleted": "Entry point deleted, pending apply",
+            "routeSaved": "Route saved, pending apply",
+            "routeDeleted": "Route deleted, pending apply",
+            "deployStarted": "Gateway deployment started",
+            "deployed": "Gateway deployed"
         }
     },
     "shell": {

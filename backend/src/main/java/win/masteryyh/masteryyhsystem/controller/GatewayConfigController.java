@@ -55,6 +55,11 @@ public class GatewayConfigController {
         service.update(id, data);
     }
 
+    @PostMapping("/deploy/{id}")
+    public void deploy(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
+        service.requestRedeploy(id);
+    }
+
     @DeleteMapping("/delete/{id}")
     public void remove(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
         service.remove(id);

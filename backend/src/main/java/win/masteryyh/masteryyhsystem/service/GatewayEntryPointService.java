@@ -3,7 +3,6 @@ package win.masteryyh.masteryyhsystem.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
-import win.masteryyh.masteryyhsystem.base.utils.AsyncTaskExecutor;
 import win.masteryyh.masteryyhsystem.model.Credential;
 import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
 import win.masteryyh.masteryyhsystem.model.dto.CredentialType;
@@ -72,7 +71,7 @@ public class GatewayEntryPointService {
         entryPoint.setGatewayId(gatewayId);
         apply(entryPoint, data);
         repository.saveAndFlush(entryPoint);
-        redeployAfterCommit(gatewayId);
+        gatewayService.markEntryPointPending(gatewayId, entryPoint.getId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -83,13 +82,13 @@ public class GatewayEntryPointService {
                 && repository.existsByGatewayIdAndName(gatewayId, data.name())) {
             throw conflict("Entry point name already exists");
         }
-        if (entryPoint.getListenPort() != data.listenPort()
+        if (!Objects.equals(entryPoint.getListenPort(), data.listenPort())
                 && repository.existsByGatewayIdAndListenPort(gatewayId, data.listenPort())) {
             throw conflict("Entry point listen port already exists");
         }
         apply(entryPoint, data);
         repository.saveAndFlush(entryPoint);
-        redeployAfterCommit(gatewayId);
+        gatewayService.markEntryPointPending(gatewayId, entryPoint.getId());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -97,7 +96,8 @@ public class GatewayEntryPointService {
         GatewayEntryPoint entryPoint = find(gatewayId, id);
         routeRepository.deleteAll(routeRepository.findByEntryPointIdOrderByPriorityDescPathPrefixAsc(id));
         repository.delete(entryPoint);
-        redeployAfterCommit(gatewayId);
+        repository.flush();
+        gatewayService.markGatewayPending(gatewayId);
     }
 
     private void apply(GatewayEntryPoint entryPoint, GatewayEntryPointRequest data) {
@@ -139,10 +139,6 @@ public class GatewayEntryPointService {
             throw new BusinessException(404, "error.gatewayEntryPoint.notFound", "Gateway entry point not found");
         }
         return entryPoint;
-    }
-
-    private void redeployAfterCommit(UUID gatewayId) {
-        AsyncTaskExecutor.afterCommit(() -> gatewayService.redeploy(gatewayId));
     }
 
     private static BusinessException conflict(String message) {

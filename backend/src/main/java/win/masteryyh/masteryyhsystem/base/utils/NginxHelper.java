@@ -80,8 +80,9 @@ public class NginxHelper {
             List<GatewayRoute> routes =
                     routeRepository.findByEntryPointIdOrderByPriorityDescPathPrefixAsc(entryPoint.getId());
             String filename = codec.filename(gateway.getName(), entryPoint.getName());
-            files.put("conf.d/" + filename,
-                    codec.write(entryPoint, routes).getBytes(StandardCharsets.UTF_8));
+            String configContent = StringUtils.defaultIfBlank(entryPoint.getCurrentConfigContent(),
+                    codec.write(entryPoint, routes));
+            files.put("conf.d/" + filename, configContent.getBytes(StandardCharsets.UTF_8));
 
             if (entryPoint.getCertificateCredentialId() != null) {
                 addCertificate(files, entryPoint);
