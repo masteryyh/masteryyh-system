@@ -544,7 +544,15 @@
             "certificate": "HTTPS 证书",
             "noCertificate": "不启用 HTTPS",
             "deleteConfirm": "删除入口「{name}」及其全部路由？",
-            "routeCount": "{count} 条路由"
+            "routeCount": "{count} 条路由",
+            "extraConfig": {
+                "title": "高级配置",
+                "webSocket": "WebSocket 支持",
+                "clientMaxBodySize": "上传文件限制",
+                "clientMaxBodySizeHint": "nginx 大小语法，如 100m / 512k；0 = 不限制",
+                "enabled": "启用",
+                "disabled": "禁用"
+            }
         },
         "route": {
             "title": "流量路由",
@@ -567,6 +575,14 @@
             "type": {
                 "PROXY": "转发到服务",
                 "STATIC": "静态资源"
+            },
+            "extraConfig": {
+                "webSocket": "WebSocket 支持",
+                "wsInherit": "继承入口",
+                "wsEnable": "启用",
+                "wsDisable": "禁用",
+                "clientMaxBodySize": "上传文件限制",
+                "clientMaxBodySizeInherit": "继承入口"
             }
         },
         "success": {
@@ -721,7 +737,12 @@
             "staticFile": {
                 "readFailed": "静态资源 ZIP 读取或解压失败"
             },
-            "bundleFailed": "网关部署包生成失败"
+            "bundleFailed": "网关部署包生成失败",
+            "extraConfig": {
+                "clientMaxBodySize": {
+                    "invalid": "上传文件限制格式无效，需为 nginx 大小语法，如 100m、512k、0"
+                }
+            }
         },
         "gatewayEntryPoint": {
             "notFound": "网关入口不存在",

@@ -13,5 +13,6 @@ public record GatewayEntryPointRequest(
         @Min(value = 1, message = "validation.gatewayEntryPoint.port.min")
         @Max(value = 65535, message = "validation.gatewayEntryPoint.port.max") int listenPort,
         @NotEmpty(message = "validation.gatewayEntryPoint.domains.notEmpty") List<String> domainNames,
-        UUID certificateCredentialId) {
+        UUID certificateCredentialId,
+        GatewayExtraConfig extraConfig) {
 }

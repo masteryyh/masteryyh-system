@@ -8,12 +8,14 @@ import java.util.UUID;
 
 public record GatewayEntryPointDto(UUID id, UUID gatewayId, String name, int listenPort,
                                    List<String> domainNames, UUID certificateCredentialId,
+                                   GatewayExtraConfig extraConfig,
                                    String currentConfigContent, String lastConfigContent,
                                    LocalDateTime createdAt, LocalDateTime updatedAt) {
     public static GatewayEntryPointDto from(GatewayEntryPoint entryPoint) {
         return new GatewayEntryPointDto(entryPoint.getId(), entryPoint.getGatewayId(),
                 entryPoint.getName(), entryPoint.getListenPort(), entryPoint.getDomainNames(),
-                entryPoint.getCertificateCredentialId(), entryPoint.getCurrentConfigContent(),
+                entryPoint.getCertificateCredentialId(), entryPoint.getExtraConfig(),
+                entryPoint.getCurrentConfigContent(),
                 entryPoint.getLastConfigContent(), entryPoint.getCreatedAt(), entryPoint.getUpdatedAt());
     }
 }

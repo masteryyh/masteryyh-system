@@ -1,5 +1,6 @@
 package win.masteryyh.masteryyhsystem.model;
 
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,11 +13,15 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.type.SqlTypes;
+import win.masteryyh.masteryyhsystem.model.dto.GatewayExtraConfig;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayRouteType;
 
 import java.time.LocalDateTime;
@@ -59,6 +64,11 @@ public class GatewayRoute {
 
     @Column(name = "static_file_id")
     private UUID staticFileId;
+
+    @Column(name = "extra_config", columnDefinition = "jsonb")
+    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private GatewayExtraConfig extraConfig;
 
     @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "timestamp not null default now()")

@@ -50,6 +50,8 @@ interface EntryFormState {
     listenPort: string;
     domains: string;
     certificateCredentialId: string;
+    wsEnabled: boolean;
+    clientMaxBodySize: string;
 }
 
 interface RouteFormState {
@@ -59,6 +61,8 @@ interface RouteFormState {
     priority: string;
     proxyTarget: string;
     staticFileId: string;
+    wsMode: "inherit" | "enable" | "disable";
+    clientMaxBodySize: string;
 }
 
 const emptyEntryForm: EntryFormState = {
@@ -66,6 +70,8 @@ const emptyEntryForm: EntryFormState = {
     listenPort: "80",
     domains: "",
     certificateCredentialId: "",
+    wsEnabled: false,
+    clientMaxBodySize: "",
 };
 
 const emptyRouteForm: RouteFormState = {
@@ -75,6 +81,8 @@ const emptyRouteForm: RouteFormState = {
     priority: "0",
     proxyTarget: "",
     staticFileId: "",
+    wsMode: "inherit",
+    clientMaxBodySize: "",
 };
 
 function certificateCredentials(credentials: Credential[]) {
@@ -141,6 +149,9 @@ export function GatewayRoutesPanel() {
                       domains: entry.domainNames.join(", "),
                       certificateCredentialId:
                           entry.certificateCredentialId ?? "",
+                      wsEnabled: entry.extraConfig?.webSocket ?? false,
+                      clientMaxBodySize:
+                          entry.extraConfig?.clientMaxBodySize ?? "",
                   }
                 : { ...emptyEntryForm },
         );
@@ -160,6 +171,14 @@ export function GatewayRoutesPanel() {
                       priority: String(route.priority),
                       proxyTarget: route.proxyTarget ?? "",
                       staticFileId: route.staticFileId ?? "",
+                      wsMode:
+                          route.extraConfig?.webSocket == null
+                              ? "inherit"
+                              : route.extraConfig.webSocket
+                                ? "enable"
+                                : "disable",
+                      clientMaxBodySize:
+                          route.extraConfig?.clientMaxBodySize ?? "",
                   }
                 : { ...emptyRouteForm },
         );
@@ -192,6 +211,10 @@ export function GatewayRoutesPanel() {
                 .filter(Boolean),
             certificateCredentialId:
                 entryForm.certificateCredentialId || null,
+            extraConfig: {
+                webSocket: entryForm.wsEnabled,
+                clientMaxBodySize: entryForm.clientMaxBodySize.trim() || null,
+            },
         };
         try {
             if (editingEntry) {
@@ -231,6 +254,14 @@ export function GatewayRoutesPanel() {
                 routeForm.routeType === "STATIC"
                     ? routeForm.staticFileId
                     : null,
+            extraConfig: {
+                webSocket:
+                    routeForm.wsMode === "inherit"
+                        ? null
+                        : routeForm.wsMode === "enable",
+                clientMaxBodySize:
+                    routeForm.clientMaxBodySize.trim() || null,
+            },
         };
         try {
             if (editingRoute) {
@@ -535,6 +566,68 @@ export function GatewayRoutesPanel() {
                                     }
                                 />
                             </Field>
+                            <div className="rounded-lg border bg-muted/20 p-3">
+                                <p className="mb-3 text-xs font-medium text-muted-foreground">
+                                    {t("gatewayDetail.entry.extraConfig.title")}
+                                </p>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <Field
+                                        label={t(
+                                            "gatewayDetail.entry.extraConfig.webSocket",
+                                        )}
+                                        htmlFor="entry-ws"
+                                    >
+                                        <select
+                                            id="entry-ws"
+                                            className={controlClass}
+                                            value={String(entryForm.wsEnabled)}
+                                            onChange={(event) =>
+                                                setEntryForm({
+                                                    ...entryForm,
+                                                    wsEnabled:
+                                                        event.target.value ===
+                                                        "true",
+                                                })
+                                            }
+                                        >
+                                            <option value="false">
+                                                {t(
+                                                    "gatewayDetail.entry.extraConfig.disabled",
+                                                )}
+                                            </option>
+                                            <option value="true">
+                                                {t(
+                                                    "gatewayDetail.entry.extraConfig.enabled",
+                                                )}
+                                            </option>
+                                        </select>
+                                    </Field>
+                                    <Field
+                                        label={t(
+                                            "gatewayDetail.entry.extraConfig.clientMaxBodySize",
+                                        )}
+                                        htmlFor="entry-body"
+                                    >
+                                        <Input
+                                            id="entry-body"
+                                            placeholder="100m / 0"
+                                            value={entryForm.clientMaxBodySize}
+                                            onChange={(event) =>
+                                                setEntryForm({
+                                                    ...entryForm,
+                                                    clientMaxBodySize:
+                                                        event.target.value,
+                                                })
+                                            }
+                                        />
+                                        <p className="text-[0.7rem] text-muted-foreground">
+                                            {t(
+                                                "gatewayDetail.entry.extraConfig.clientMaxBodySizeHint",
+                                            )}
+                                        </p>
+                                    </Field>
+                                </div>
+                            </div>
                         </div>
                         <ErrorBanner
                             error={formError}
@@ -652,25 +745,91 @@ export function GatewayRoutesPanel() {
                                 </Field>
                             </div>
                             {routeForm.routeType === "PROXY" ? (
-                                <Field
-                                    label={t(
-                                        "gatewayDetail.route.proxyTarget",
-                                    )}
-                                    htmlFor="route-target"
-                                >
-                                    <Input
-                                        id="route-target"
-                                        required
-                                        placeholder="http://10.0.0.8:8080"
-                                        value={routeForm.proxyTarget}
-                                        onChange={(event) =>
-                                            setRouteForm({
-                                                ...routeForm,
-                                                proxyTarget: event.target.value,
-                                            })
-                                        }
-                                    />
-                                </Field>
+                                <>
+                                    <Field
+                                        label={t(
+                                            "gatewayDetail.route.proxyTarget",
+                                        )}
+                                        htmlFor="route-target"
+                                    >
+                                        <Input
+                                            id="route-target"
+                                            required
+                                            placeholder="http://10.0.0.8:8080"
+                                            value={routeForm.proxyTarget}
+                                            onChange={(event) =>
+                                                setRouteForm({
+                                                    ...routeForm,
+                                                    proxyTarget:
+                                                        event.target.value,
+                                                })
+                                            }
+                                        />
+                                    </Field>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <Field
+                                            label={t(
+                                                "gatewayDetail.route.extraConfig.webSocket",
+                                            )}
+                                            htmlFor="route-ws"
+                                        >
+                                            <select
+                                                id="route-ws"
+                                                className={controlClass}
+                                                value={routeForm.wsMode}
+                                                onChange={(event) =>
+                                                    setRouteForm({
+                                                        ...routeForm,
+                                                        wsMode: event.target
+                                                            .value as
+                                                            | "inherit"
+                                                            | "enable"
+                                                            | "disable",
+                                                    })
+                                                }
+                                            >
+                                                <option value="inherit">
+                                                    {t(
+                                                        "gatewayDetail.route.extraConfig.wsInherit",
+                                                    )}
+                                                </option>
+                                                <option value="enable">
+                                                    {t(
+                                                        "gatewayDetail.route.extraConfig.wsEnable",
+                                                    )}
+                                                </option>
+                                                <option value="disable">
+                                                    {t(
+                                                        "gatewayDetail.route.extraConfig.wsDisable",
+                                                    )}
+                                                </option>
+                                            </select>
+                                        </Field>
+                                        <Field
+                                            label={t(
+                                                "gatewayDetail.route.extraConfig.clientMaxBodySize",
+                                            )}
+                                            htmlFor="route-body"
+                                        >
+                                            <Input
+                                                id="route-body"
+                                                placeholder={t(
+                                                    "gatewayDetail.route.extraConfig.clientMaxBodySizeInherit",
+                                                )}
+                                                value={
+                                                    routeForm.clientMaxBodySize
+                                                }
+                                                onChange={(event) =>
+                                                    setRouteForm({
+                                                        ...routeForm,
+                                                        clientMaxBodySize:
+                                                            event.target.value,
+                                                    })
+                                                }
+                                            />
+                                        </Field>
+                                    </div>
+                                </>
                             ) : (
                                 <>
                                     <Field

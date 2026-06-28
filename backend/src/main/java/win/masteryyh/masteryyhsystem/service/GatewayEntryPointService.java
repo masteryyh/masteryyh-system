@@ -7,6 +7,7 @@ import win.masteryyh.masteryyhsystem.model.Credential;
 import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
 import win.masteryyh.masteryyhsystem.model.dto.CredentialType;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayEntryPointDto;
+import win.masteryyh.masteryyhsystem.model.dto.GatewayExtraConfig;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayEntryPointRequest;
 import win.masteryyh.masteryyhsystem.repository.CredentialRepository;
 import win.masteryyh.masteryyhsystem.repository.GatewayConfigRepository;
@@ -107,6 +108,7 @@ public class GatewayEntryPointService {
         entryPoint.setListenPort(data.listenPort());
         entryPoint.setDomainNames(data.domainNames().stream().map(String::trim).distinct().toList());
         entryPoint.setCertificateCredentialId(data.certificateCredentialId());
+        entryPoint.setExtraConfig(data.extraConfig());
     }
 
     private void validate(GatewayEntryPointRequest data) {
@@ -117,6 +119,7 @@ public class GatewayEntryPointService {
         if (data.domainNames().stream().map(String::trim).anyMatch(domain -> !DOMAIN.matcher(domain).matches())) {
             throw new BusinessException(400, "error.gatewayEntryPoint.domain.invalid", "Invalid domain name");
         }
+        validateExtraConfig(data.extraConfig());
         if (data.certificateCredentialId() != null) {
             Credential credential = credentialRepository.findById(data.certificateCredentialId())
                     .orElseThrow(() -> new BusinessException(404, "error.credential.notFound", "Credential not found"));
@@ -161,5 +164,15 @@ public class GatewayEntryPointService {
 
     private static BusinessException conflict(String message) {
         return new BusinessException(409, "error.gatewayEntryPoint.alreadyExists", message);
+    }
+
+    private static void validateExtraConfig(GatewayExtraConfig extraConfig) {
+        if (extraConfig == null) {
+            return;
+        }
+        if (!extraConfig.clientMaxBodySizeValid()) {
+            throw new BusinessException(400, "error.gateway.extraConfig.clientMaxBodySize.invalid",
+                    "client_max_body_size must match nginx size syntax, e.g. 100m / 512k / 0");
+        }
     }
 }
