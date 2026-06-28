@@ -14,8 +14,11 @@ import win.masteryyh.masteryyhsystem.repository.GatewayEntryPointRepository;
 import win.masteryyh.masteryyhsystem.repository.GatewayRouteRepository;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.regex.Pattern;
 
 @Service
@@ -64,8 +67,8 @@ public class GatewayEntryPointService {
         if (repository.existsByGatewayIdAndName(gatewayId, data.name())) {
             throw conflict("Entry point name already exists");
         }
-        if (repository.existsByGatewayIdAndListenPort(gatewayId, data.listenPort())) {
-            throw conflict("Entry point listen port already exists");
+        if (hasConflict(gatewayId, null, data)) {
+            throw conflict("Entry point listen port and domain already exists");
         }
         GatewayEntryPoint entryPoint = new GatewayEntryPoint();
         entryPoint.setGatewayId(gatewayId);
@@ -82,9 +85,8 @@ public class GatewayEntryPointService {
                 && repository.existsByGatewayIdAndName(gatewayId, data.name())) {
             throw conflict("Entry point name already exists");
         }
-        if (!Objects.equals(entryPoint.getListenPort(), data.listenPort())
-                && repository.existsByGatewayIdAndListenPort(gatewayId, data.listenPort())) {
-            throw conflict("Entry point listen port already exists");
+        if (hasConflict(gatewayId, id, data)) {
+            throw conflict("Entry point listen port and domain already exists");
         }
         apply(entryPoint, data);
         repository.saveAndFlush(entryPoint);
@@ -123,6 +125,22 @@ public class GatewayEntryPointService {
                         "HTTPS certificate must reference an X.509 credential");
             }
         }
+    }
+
+    private boolean hasConflict(UUID gatewayId, UUID currentEntryPointId, GatewayEntryPointRequest data) {
+        Set<String> requestedDomains = normalizedDomains(data.domainNames());
+        return repository.findByGatewayIdOrderByListenPortAscNameAsc(gatewayId).stream()
+                .filter(entryPoint -> !Objects.equals(entryPoint.getId(), currentEntryPointId))
+                .filter(entryPoint -> Objects.equals(entryPoint.getListenPort(), data.listenPort()))
+                .anyMatch(entryPoint -> normalizedDomains(entryPoint.getDomainNames()).stream()
+                        .anyMatch(requestedDomains::contains));
+    }
+
+    private static Set<String> normalizedDomains(List<String> domains) {
+        return domains.stream()
+                .map(String::trim)
+                .map(domain -> domain.toLowerCase(Locale.ROOT))
+                .collect(Collectors.toSet());
     }
 
     private void requireGateway(UUID gatewayId) {

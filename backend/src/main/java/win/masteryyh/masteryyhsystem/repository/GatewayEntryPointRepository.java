@@ -11,7 +11,5 @@ public interface GatewayEntryPointRepository extends JpaRepository<GatewayEntryP
 
     boolean existsByGatewayIdAndName(UUID gatewayId, String name);
 
-    boolean existsByGatewayIdAndListenPort(UUID gatewayId, int listenPort);
-
     boolean existsByCertificateCredentialId(UUID certificateCredentialId);
 }

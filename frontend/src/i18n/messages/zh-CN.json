@@ -617,7 +617,7 @@
         },
         "gatewayEntryPoint": {
             "notFound": "网关入口不存在",
-            "alreadyExists": "同一网关下已存在相同名称或监听端口的入口",
+            "alreadyExists": "同一网关下已存在相同名称，或相同监听端口和响应域名的入口",
             "name": {
                 "invalid": "入口名称只能包含字母、数字、点、下划线和连字符"
             },
