@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
 import win.masteryyh.masteryyhsystem.base.page.PageDataRequest;
 import win.masteryyh.masteryyhsystem.base.page.PagedResponse;
@@ -16,6 +17,10 @@ import win.masteryyh.masteryyhsystem.model.dto.AddAppPlatformDto;
 import win.masteryyh.masteryyhsystem.model.dto.AppPlatformDto;
 import win.masteryyh.masteryyhsystem.model.dto.PlatformType;
 import win.masteryyh.masteryyhsystem.model.dto.UpdateAppPlatformDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerContainerDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerImageDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerNetworkDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerVolumeDto;
 import win.masteryyh.masteryyhsystem.platform.DockerManager;
 import win.masteryyh.masteryyhsystem.platform.SSHManager;
 import win.masteryyh.masteryyhsystem.repository.AppPlatformRepository;
@@ -69,6 +74,7 @@ public class AppPlatformService {
                 (int) Math.ceil((double) total / request.pageSize()), total);
     }
 
+    @Transactional(readOnly = true)
     public AppPlatformDto get(UUID id) {
         logger.info("Requesting platform with ID {}", id);
 
@@ -210,5 +216,41 @@ public class AppPlatformService {
             sshManager.removePlatform(id);
         }
         appPlatformRepository.delete(platform);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DockerContainerDto> listContainers(UUID id) {
+        logger.info("Listing containers on platform {}", id);
+        requireDockerPlatform(id);
+        return dockerManager.listContainers(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DockerImageDto> listImages(UUID id) {
+        logger.info("Listing images on platform {}", id);
+        requireDockerPlatform(id);
+        return dockerManager.listImages(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DockerNetworkDto> listNetworks(UUID id) {
+        logger.info("Listing networks on platform {}", id);
+        requireDockerPlatform(id);
+        return dockerManager.listNetworks(id);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DockerVolumeDto> listVolumes(UUID id) {
+        logger.info("Listing volumes on platform {}", id);
+        requireDockerPlatform(id);
+        return dockerManager.listVolumes(id);
+    }
+
+    private void requireDockerPlatform(UUID id) {
+        AppPlatform platform = appPlatformRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "error.platform.notFound", "Platform not found"));
+        if (!platform.getPlatformType().equals(PlatformType.DOCKER)) {
+            throw new BusinessException(400, "error.platform.notDocker", "Platform is not a Docker platform");
+        }
     }
 }

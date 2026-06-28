@@ -2,6 +2,10 @@ import type { BaseApiClient } from "@/lib/api/client";
 import type {
     AppPlatform,
     AppPlatformRequest,
+    DockerContainer,
+    DockerImage,
+    DockerNetwork,
+    DockerVolume,
     PagedResponse,
 } from "@/types/api";
 
@@ -50,5 +54,29 @@ export class PlatformsApi {
         return this.client.request<void>(`/v1/platforms/delete/${id}`, {
             method: "DELETE",
         });
+    }
+
+    containers(id: string): Promise<DockerContainer[]> {
+        return this.client.request<DockerContainer[]>(
+            `/v1/platforms/${id}/containers`,
+        );
+    }
+
+    images(id: string): Promise<DockerImage[]> {
+        return this.client.request<DockerImage[]>(
+            `/v1/platforms/${id}/images`,
+        );
+    }
+
+    networks(id: string): Promise<DockerNetwork[]> {
+        return this.client.request<DockerNetwork[]>(
+            `/v1/platforms/${id}/networks`,
+        );
+    }
+
+    volumes(id: string): Promise<DockerVolume[]> {
+        return this.client.request<DockerVolume[]>(
+            `/v1/platforms/${id}/volumes`,
+        );
     }
 }

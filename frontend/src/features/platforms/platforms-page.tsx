@@ -6,6 +6,7 @@ import {
     type ReactNode,
 } from "react";
 import {
+    ArrowUpRight,
     Container,
     MoreHorizontal,
     Pencil,
@@ -14,6 +15,7 @@ import {
     TerminalSquare,
     Trash2,
 } from "lucide-react";
+import { useNavigate } from "react-router";
 
 import {
     EmptyState,
@@ -92,6 +94,7 @@ export function PlatformsPage() {
     const notify = useNotify();
     const { t } = useTranslation();
     const { openShell } = useWebShell();
+    const navigate = useNavigate();
 
     const [page, setPage] = useState(1);
     const [result, setResult] = useState<PagedResponse<AppPlatform> | null>(
@@ -348,6 +351,9 @@ export function PlatformsPage() {
                                         canOpenShell={
                                             platform.platformType === "HOST" &&
                                             platform.online
+                                        }
+                                        onOpen={() =>
+                                            navigate(`/platforms/${platform.id}`)
                                         }
                                         onEdit={() => openEdit(platform)}
                                         onDelete={() => {
@@ -683,6 +689,7 @@ function PlatformRow({
     platform,
     credential,
     canOpenShell,
+    onOpen,
     onEdit,
     onDelete,
     onOpenShell,
@@ -690,6 +697,7 @@ function PlatformRow({
     platform: AppPlatform;
     credential?: Credential;
     canOpenShell: boolean;
+    onOpen: () => void;
     onEdit: () => void;
     onDelete: () => void;
     onOpenShell: () => void;
@@ -705,7 +713,10 @@ function PlatformRow({
             : `${platform.sshUsername}@${platform.sshHost}:${platform.sshPort}`;
 
     return (
-        <tr className="transition-colors hover:bg-muted/25">
+        <tr
+            onClick={onOpen}
+            className="cursor-pointer transition-colors hover:bg-muted/40"
+        >
             <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                     <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-background">
@@ -716,7 +727,12 @@ function PlatformRow({
                         )}
                     </span>
                     <div className="min-w-0">
-                        <p className="font-medium">{platform.name}</p>
+                        <p className="group flex items-center gap-1 font-medium">
+                            <span className="underline-offset-4 group-hover:underline">
+                                {platform.name}
+                            </span>
+                            <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                        </p>
                         <p className="max-w-52 truncate text-xs text-muted-foreground">
                             {platform.description ||
                                 t(`platforms.type.${platform.platformType}`)}
@@ -777,7 +793,10 @@ function PlatformRow({
             <td className="px-4 py-3 text-xs text-muted-foreground">
                 {formatDate(platform.updatedAt)}
             </td>
-            <td className="px-4 py-3">
+            <td
+                className="px-4 py-3"
+                onClick={(event) => event.stopPropagation()}
+            >
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon-sm">
@@ -788,6 +807,10 @@ function PlatformRow({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={onOpen}>
+                            <ArrowUpRight />
+                            {t("platforms.actions.openDetail")}
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={onEdit}>
                             <Pencil />
                             {t("common.edit")}
