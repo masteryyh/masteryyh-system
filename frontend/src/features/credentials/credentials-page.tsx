@@ -788,14 +788,7 @@ function CredentialRow({
                 <CredentialStatusBadge status={credential.status} />
             </td>
             <td className="px-4 py-3">
-                <div className="space-y-1">
-                    <ExpiryIndicator expiresAt={credential.expiresAt} />
-                    {credential.expiresAt ? (
-                        <p className="font-mono text-[10px] text-muted-foreground/80">
-                            {formatDate(credential.expiresAt)}
-                        </p>
-                    ) : null}
-                </div>
+                <ExpiryIndicator expiresAt={credential.expiresAt} />
             </td>
             <td className="px-4 py-3 text-xs text-muted-foreground">
                 {formatDate(credential.updatedAt)}

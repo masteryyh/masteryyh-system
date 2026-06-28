@@ -14,6 +14,7 @@ import {
     Network,
     Pencil,
     Plus,
+    RefreshCw,
     Server,
     SlidersHorizontal,
     Trash2,
@@ -116,6 +117,7 @@ export function GatewaysPage() {
 
     const [logs, setLogs] = useState<Record<string, ProgressEntry[]>>({});
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
+    const [deployingIds, setDeployingIds] = useState<Set<string>>(new Set());
 
     const loadGateways = useCallback(async () => {
         setLoading(true);
@@ -159,9 +161,13 @@ export function GatewaysPage() {
     const channels = useMemo(
         () =>
             (result?.data ?? [])
-                .filter((g) => PROGRESSING_STATUS.includes(g.status))
+                .filter(
+                    (g) =>
+                        PROGRESSING_STATUS.includes(g.status) ||
+                        deployingIds.has(g.id),
+                )
                 .map((g) => `gateway:${g.id}`),
-        [result],
+        [deployingIds, result],
     );
 
     const handleEvent = useCallback(
@@ -193,31 +199,114 @@ export function GatewaysPage() {
                 return;
             }
 
-            // done / failed：收尾当前 running 条目，延迟刷新列表
-            const finalState: ProgressEntry["state"] =
-                event === "done" ? "done" : "failed";
-            setLogs((prev) => {
-                const list = (prev[id] ?? []).map((e) =>
-                    e.state === "running" ? { ...e, state: finalState } : e,
-                );
-                return { ...prev, [id]: list };
-            });
-
             if (event === "failed") {
-                notify.error(new Error(payload.message ?? ""), {
+                setDeployingIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                });
+                setExpanded((prev) => {
+                    const next = new Set(prev);
+                    next.add(id);
+                    return next;
+                });
+                setResult((current) =>
+                    current
+                        ? {
+                              ...current,
+                              data: current.data.map((gateway) =>
+                                  gateway.id === id
+                                      ? {
+                                            ...gateway,
+                                            pendingChanges: true,
+                                            status: gateway.status === "STARTING"
+                                                ? "HEALTHY"
+                                                : gateway.status,
+                                        }
+                                      : gateway,
+                              ),
+                          }
+                        : current,
+                );
+                setLogs((prev) => {
+                    const finished = (prev[id] ?? []).map((e) =>
+                        e.state === "running"
+                            ? { ...e, state: "failed" as const }
+                            : e,
+                    );
+                    return {
+                        ...prev,
+                        [id]: [
+                            ...finished,
+                            {
+                                step: payload.step ?? "failed",
+                                message:
+                                    payload.message ??
+                                    t("gateways.fallback.deployFailed"),
+                                state: "failed",
+                            },
+                        ],
+                    };
+                });
+                notify.error(new Error("Gateway deployment failed"), {
                     titleKey: "gateways.fallback.deployFailed",
-                    description: payload.message,
                 });
             } else if (payload.status === "DELETED") {
+                setDeployingIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                });
+                setLogs((prev) => {
+                    const list = (prev[id] ?? []).map((e) =>
+                        e.state === "running"
+                            ? { ...e, state: "done" as const }
+                            : e,
+                    );
+                    return { ...prev, [id]: list };
+                });
                 notify.success("gateways.success.deleted");
                 setSuccessKey("gateways.success.deleted");
             } else {
+                setDeployingIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(id);
+                    return next;
+                });
+                setResult((current) =>
+                    current
+                        ? {
+                              ...current,
+                              data: current.data.map((gateway) =>
+                                  gateway.id === id
+                                      ? {
+                                            ...gateway,
+                                            pendingChanges: false,
+                                            status:
+                                                (payload.status as
+                                                    | GatewayStatus
+                                                    | undefined) ??
+                                                gateway.status,
+                                        }
+                                      : gateway,
+                              ),
+                          }
+                        : current,
+                );
+                setLogs((prev) => {
+                    const list = (prev[id] ?? []).map((e) =>
+                        e.state === "running"
+                            ? { ...e, state: "done" as const }
+                            : e,
+                    );
+                    return { ...prev, [id]: list };
+                });
                 notify.success("gateways.success.deployed");
                 setSuccessKey("gateways.success.deployed");
             }
             window.setTimeout(() => void loadGateways(), 1200);
         },
-        [loadGateways, notify],
+        [loadGateways, notify, t],
     );
 
     useEventStream({ channels, onEvent: handleEvent });
@@ -323,6 +412,60 @@ export function GatewaysPage() {
         }
     }
 
+    async function deployGateway(gateway: GatewayConfig) {
+        setDeployingIds((prev) => {
+            const next = new Set(prev);
+            next.add(gateway.id);
+            return next;
+        });
+        setExpanded((prev) => {
+            const next = new Set(prev);
+            next.add(gateway.id);
+            return next;
+        });
+        setLogs((prev) => ({ ...prev, [gateway.id]: [] }));
+        try {
+            await api.gateways.deploy(gateway.id);
+            setResult((current) =>
+                current
+                    ? {
+                          ...current,
+                          data: current.data.map((item) =>
+                              item.id === gateway.id
+                                  ? {
+                                        ...item,
+                                        status: "STARTING",
+                                        pendingChanges: false,
+                                    }
+                                  : item,
+                          ),
+                      }
+                    : current,
+            );
+            notify.success("gatewayDetail.success.deployStarted");
+        } catch (deployError) {
+            setDeployingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(gateway.id);
+                return next;
+            });
+            setLogs((prev) => ({
+                ...prev,
+                [gateway.id]: [
+                    ...(prev[gateway.id] ?? []),
+                    {
+                        step: "failed",
+                        message: notify.describe(deployError).text,
+                        state: "failed",
+                    },
+                ],
+            }));
+            notify.error(new Error("Gateway deployment failed"), {
+                titleKey: "gateways.fallback.deployFailed",
+            });
+        }
+    }
+
     function toggleExpand(id: string) {
         setExpanded((prev) => {
             const next = new Set(prev);
@@ -404,6 +547,11 @@ export function GatewaysPage() {
                                                 toggleExpand(gateway.id)
                                             }
                                             onEdit={() => openEdit(gateway)}
+                                            onDeploy={
+                                                gateway.pendingChanges
+                                                    ? () => void deployGateway(gateway)
+                                                    : undefined
+                                            }
                                             onDelete={() => {
                                                 setDeleteError(null);
                                                 setDeleting(gateway);
@@ -656,6 +804,7 @@ function GatewayRow({
     isExpanded,
     onToggleExpand,
     onEdit,
+    onDeploy,
     onDelete,
 }: {
     gateway: GatewayConfig;
@@ -664,6 +813,7 @@ function GatewayRow({
     isExpanded: boolean;
     onToggleExpand: () => void;
     onEdit: () => void;
+    onDeploy?: () => void;
     onDelete: () => void;
 }) {
     const { t } = useTranslation();
@@ -723,7 +873,10 @@ function GatewayRow({
                     </p>
                 </td>
                 <td className="px-4 py-3">
-                    <StatusBadge status={gateway.status} />
+                    <StatusBadge
+                        status={gateway.status}
+                        pendingChanges={gateway.pendingChanges}
+                    />
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDate(gateway.updatedAt)}
@@ -763,6 +916,16 @@ function GatewayRow({
                         >
                             <Pencil className="size-4" />
                         </Button>
+                        {onDeploy && !inProgress ? (
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={onDeploy}
+                                aria-label={t("gateways.actions.deploy")}
+                            >
+                                <RefreshCw className="size-4" />
+                            </Button>
+                        ) : null}
                         <Button
                             variant="ghost"
                             size="icon-sm"
@@ -785,23 +948,36 @@ function GatewayRow({
     );
 }
 
-function StatusBadge({ status }: { status: GatewayStatus }) {
+function StatusBadge({
+    status,
+    pendingChanges = false,
+}: {
+    status: GatewayStatus;
+    pendingChanges?: boolean;
+}) {
     const { t } = useTranslation();
     const config = statusConfig(status);
     return (
-        <span className="inline-flex items-center gap-2 whitespace-nowrap text-xs font-medium">
-            {config.spin ? (
-                <LoaderCircle className="size-3.5 animate-spin text-muted-foreground" />
-            ) : (
-                <span
-                    className={cn(
-                        "size-2 rounded-full",
-                        config.dot,
-                        config.glow,
-                    )}
-                />
-            )}
-            {t(`gateways.status.${status}`)}
+        <span className="inline-flex flex-wrap items-center gap-2 text-xs font-medium">
+            <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                {config.spin ? (
+                    <LoaderCircle className="size-3.5 animate-spin text-muted-foreground" />
+                ) : (
+                    <span
+                        className={cn(
+                            "size-2 rounded-full",
+                            config.dot,
+                            config.glow,
+                        )}
+                    />
+                )}
+                {t(`gateways.status.${status}`)}
+            </span>
+            {pendingChanges ? (
+                <span className="rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0.5 text-[0.68rem] text-amber-700">
+                    {t("gateways.status.pendingChanges")}
+                </span>
+            ) : null}
         </span>
     );
 }

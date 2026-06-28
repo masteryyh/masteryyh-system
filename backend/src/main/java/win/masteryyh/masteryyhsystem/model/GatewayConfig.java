@@ -65,6 +65,9 @@ public class GatewayConfig {
     @Column(name = "config_content")
     private String configContent;
 
+    @Column(name = "pending_changes", nullable = false, columnDefinition = "boolean not null default false")
+    private boolean pendingChanges;
+
     @Column(name = "local_config_path")
     private String localConfigPath;
 

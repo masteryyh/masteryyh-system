@@ -4,7 +4,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
-import win.masteryyh.masteryyhsystem.base.utils.AsyncTaskExecutor;
 import win.masteryyh.masteryyhsystem.base.utils.StaticArchiveValidator;
 import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
 import win.masteryyh.masteryyhsystem.model.GatewayRoute;
@@ -67,7 +66,7 @@ public class GatewayRouteService {
         route.setEntryPointId(entryPointId);
         apply(route, data);
         repository.saveAndFlush(route);
-        redeployAfterCommit(gatewayId);
+        gatewayService.markEntryPointPending(gatewayId, entryPointId);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -80,14 +79,15 @@ public class GatewayRouteService {
         }
         apply(route, data);
         repository.saveAndFlush(route);
-        redeployAfterCommit(gatewayId);
+        gatewayService.markEntryPointPending(gatewayId, entryPointId);
     }
 
     @Transactional(rollbackFor = Exception.class)
     public void remove(UUID gatewayId, UUID entryPointId, UUID id) {
         GatewayRoute route = requireRoute(gatewayId, entryPointId, id);
         repository.delete(route);
-        redeployAfterCommit(gatewayId);
+        repository.flush();
+        gatewayService.markEntryPointPending(gatewayId, entryPointId);
     }
 
     private void apply(GatewayRoute route, GatewayRouteRequestDto data) {
@@ -148,10 +148,6 @@ public class GatewayRouteService {
             throw new BusinessException(404, "error.gatewayRoute.notFound", "Gateway route not found");
         }
         return route;
-    }
-
-    private void redeployAfterCommit(UUID gatewayId) {
-        AsyncTaskExecutor.afterCommit(() -> gatewayService.redeploy(gatewayId));
     }
 
     private static String normalizePath(String path) {

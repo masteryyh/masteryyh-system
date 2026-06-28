@@ -6,18 +6,23 @@ import {
     type FormEvent,
     type ReactNode,
 } from "react";
+import { DiffEditor } from "@monaco-editor/react";
 import {
     ArrowLeft,
+    CheckCircle2,
     FileArchive,
     Globe2,
+    LoaderCircle,
     LockKeyhole,
     Network,
     Pencil,
     Plus,
+    RefreshCw,
     Route,
     ServerCog,
     Trash2,
     Upload,
+    XCircle,
 } from "lucide-react";
 import { Link, useParams } from "react-router";
 
@@ -34,6 +39,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApi } from "@/hooks/use-api";
+import { useEventStream } from "@/hooks/use-event-stream";
+import { useMonacoTheme } from "@/hooks/use-monaco-theme";
 import { useNotify } from "@/hooks/use-notify";
 import { useTranslation } from "@/hooks/use-translation";
 import { cn } from "@/lib/utils";
@@ -53,6 +60,12 @@ const controlClass =
 
 const credentialPageSize = 1000;
 
+interface ProgressEntry {
+    step: string;
+    message: string;
+    state: "running" | "done" | "failed";
+}
+
 function certificateCredentials(credentials: Credential[]) {
     return credentials.filter(
         (credential) => credential.credentialType === "X509_CERTIFICATE",
@@ -64,6 +77,7 @@ export function GatewayDetailPage() {
     const api = useApi();
     const notify = useNotify();
     const { t } = useTranslation();
+    const theme = useMonacoTheme();
     const [gateway, setGateway] = useState<GatewayConfig | null>(null);
     const [entryPoints, setEntryPoints] = useState<GatewayEntryPoint[]>([]);
     const [routes, setRoutes] = useState<Record<string, GatewayRoute[]>>({});
@@ -77,6 +91,11 @@ export function GatewayDetailPage() {
     const [editingEntry, setEditingEntry] = useState<GatewayEntryPoint | null>(null);
     const [editingRoute, setEditingRoute] = useState<GatewayRoute | null>(null);
     const [saving, setSaving] = useState(false);
+    const [deployDialog, setDeployDialog] = useState(false);
+    const [deploying, setDeploying] = useState(false);
+    const [deployError, setDeployError] = useState<unknown>(null);
+    const [diffEntryId, setDiffEntryId] = useState("");
+    const [deployLogs, setDeployLogs] = useState<ProgressEntry[]>([]);
     const [loadingCredentials, setLoadingCredentials] = useState(false);
     const [formError, setFormError] = useState<unknown>(null);
     const [entryForm, setEntryForm] = useState({
@@ -149,6 +168,98 @@ export function GatewayDetailPage() {
         [entryPoints, selectedId],
     );
 
+    const changedEntryPoints = useMemo(
+        () =>
+            entryPoints.filter(
+                (entry) =>
+                    (entry.currentConfigContent ?? "") !==
+                    (entry.lastConfigContent ?? ""),
+            ),
+        [entryPoints],
+    );
+
+    const diffEntry = useMemo(
+        () =>
+            entryPoints.find((entry) => entry.id === diffEntryId) ??
+            changedEntryPoints[0] ??
+            entryPoints[0] ??
+            null,
+        [changedEntryPoints, diffEntryId, entryPoints],
+    );
+
+    const channels = useMemo(
+        () => (gateway ? [`gateway:${gateway.id}`] : []),
+        [gateway],
+    );
+
+    const handleEvent = useCallback(
+        (_channel: string, event: string, data: unknown) => {
+            const payload = (data ?? {}) as {
+                step?: string;
+                message?: string;
+                status?: string;
+            };
+            if (event === "progress") {
+                const step = payload.step ?? "progress";
+                const message = payload.message ?? "";
+                setDeployLogs((current) => {
+                    const next = [...current];
+                    const idx = next.findIndex(
+                        (entry) =>
+                            entry.step === step && entry.state === "running",
+                    );
+                    if (idx >= 0) {
+                        next[idx] = { ...next[idx], message };
+                    } else {
+                        next.push({ step, message, state: "running" });
+                    }
+                    return next;
+                });
+                return;
+            }
+            if (event === "failed") {
+                setDeployLogs((current) => {
+                    const finished = current.map((entry) =>
+                        entry.state === "running"
+                            ? { ...entry, state: "failed" as const }
+                            : entry,
+                    );
+                    return [
+                        ...finished,
+                        {
+                            step: payload.step ?? "failed",
+                            message:
+                                payload.message ??
+                                t("gateways.fallback.deployFailed"),
+                            state: "failed",
+                        },
+                    ];
+                });
+                notify.error(new Error("Gateway deployment failed"), {
+                    titleKey: "gateways.fallback.deployFailed",
+                });
+                setDeploying(false);
+                window.setTimeout(() => void load(), 800);
+                return;
+            }
+            if (event === "done") {
+                setDeployLogs((current) =>
+                    current.map((entry) =>
+                        entry.state === "running"
+                            ? { ...entry, state: "done" }
+                            : entry,
+                    ),
+                );
+                notify.success("gatewayDetail.success.deployed");
+                setDeploying(false);
+                window.setTimeout(() => void load(), 800);
+            }
+        },
+        [load, notify, t],
+    );
+
+    useEventStream({ channels, onEvent: handleEvent });
+
     async function openEntry(entry?: GatewayEntryPoint) {
         setEditingEntry(entry ?? null);
         setEntryForm(
@@ -202,6 +313,48 @@ export function GatewayDetailPage() {
         );
         setFormError(null);
         setRouteDialog(true);
+    }
+
+    function updateEntryCertificate(certificateCredentialId: string) {
+        setEntryForm((current) => ({
+            ...current,
+            certificateCredentialId,
+            listenPort: editingEntry
+                ? current.listenPort
+                : certificateCredentialId
+                  ? "443"
+                  : "80",
+        }));
+    }
+
+    function openDeployDialog() {
+        setDeployError(null);
+        setDiffEntryId(changedEntryPoints[0]?.id ?? entryPoints[0]?.id ?? "");
+        setDeployDialog(true);
+    }
+
+    async function deployGateway() {
+        if (!gateway) return;
+        setDeploying(true);
+        setDeployError(null);
+        setDeployLogs([]);
+        try {
+            await api.gateways.deploy(gateway.id);
+            setGateway((current) =>
+                current
+                    ? {
+                          ...current,
+                          status: "STARTING",
+                          pendingChanges: false,
+                      }
+                    : current,
+            );
+            setDeployDialog(false);
+            notify.success("gatewayDetail.success.deployStarted");
+        } catch (deployError) {
+            setDeployError(deployError);
+            setDeploying(false);
+        }
     }
 
     async function saveEntry(event: FormEvent) {
@@ -336,14 +489,41 @@ export function GatewayDetailPage() {
                         <p className="mt-2 text-sm text-muted-foreground">
                             {gateway?.description || t("gatewayDetail.description")}
                         </p>
+                        {gateway?.pendingChanges ? (
+                            <p className="mt-3 inline-flex items-center gap-2 rounded-md border border-amber-300/70 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                                <span className="size-2 rounded-full bg-amber-500" />
+                                {t("gatewayDetail.pending")}
+                            </p>
+                        ) : null}
                     </div>
-                    <Button onClick={() => void openEntry()}>
-                        <Plus />
-                        {t("gatewayDetail.entry.add")}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        <Button
+                            variant={gateway?.pendingChanges ? "default" : "outline"}
+                            onClick={openDeployDialog}
+                            disabled={!gateway || deploying}
+                        >
+                            {deploying ? (
+                                <LoaderCircle className="animate-spin" />
+                            ) : (
+                                <RefreshCw />
+                            )}
+                            {gateway?.pendingChanges
+                                ? t("gatewayDetail.deploy.apply")
+                                : t("gatewayDetail.deploy.redeploy")}
+                        </Button>
+                        <Button onClick={() => void openEntry()}>
+                            <Plus />
+                            {t("gatewayDetail.entry.add")}
+                        </Button>
+                    </div>
                 </div>
             </div>
             <ErrorBanner error={error} fallbackKey="gatewayDetail.loadFailed" />
+            {(deploying || deployLogs.length > 0) ? (
+                <section className="rounded-xl border bg-muted/20 p-4">
+                    <ProgressLog entries={deployLogs} inProgress={deploying} />
+                </section>
+            ) : null}
 
             <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
                 <aside className="space-y-2">
@@ -473,6 +653,117 @@ export function GatewayDetailPage() {
                 </section>
             </div>
 
+            <Dialog open={deployDialog} onOpenChange={setDeployDialog}>
+                <DialogContent className="max-w-5xl">
+                    <DialogHeader>
+                        <DialogTitle>{t("gatewayDetail.deploy.title")}</DialogTitle>
+                        <DialogDescription>
+                            {gateway?.pendingChanges
+                                ? t("gatewayDetail.deploy.descriptionPending")
+                                : t("gatewayDetail.deploy.descriptionRedeploy")}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        {entryPoints.length ? (
+                            <>
+                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                    <select
+                                        className="h-9 min-w-60 rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                                        value={diffEntry?.id ?? ""}
+                                        onChange={(event) =>
+                                            setDiffEntryId(event.target.value)
+                                        }
+                                    >
+                                        {entryPoints.map((entry) => {
+                                            const changed =
+                                                (entry.currentConfigContent ??
+                                                    "") !==
+                                                (entry.lastConfigContent ?? "");
+                                            return (
+                                                <option
+                                                    key={entry.id}
+                                                    value={entry.id}
+                                                >
+                                                    {entry.name} :{entry.listenPort}
+                                                    {changed
+                                                        ? ` · ${t("gatewayDetail.deploy.changed")}`
+                                                        : ""}
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                    <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                                        {changedEntryPoints.length ? (
+                                            <XCircle className="size-4 text-amber-600" />
+                                        ) : (
+                                            <CheckCircle2 className="size-4 text-emerald-600" />
+                                        )}
+                                        {t("gatewayDetail.deploy.changedCount", {
+                                            count: changedEntryPoints.length,
+                                        })}
+                                    </span>
+                                </div>
+                                <div className="overflow-hidden rounded-lg border">
+                                    <DiffEditor
+                                        height={420}
+                                        language="plaintext"
+                                        theme={theme}
+                                        original={
+                                            diffEntry?.lastConfigContent ?? ""
+                                        }
+                                        modified={
+                                            diffEntry?.currentConfigContent ?? ""
+                                        }
+                                        options={{
+                                            readOnly: true,
+                                            renderSideBySide: true,
+                                            minimap: { enabled: false },
+                                            fontSize: 12,
+                                            lineNumbersMinChars: 3,
+                                            scrollBeyondLastLine: false,
+                                            automaticLayout: true,
+                                            contextmenu: false,
+                                            wordWrap: "on",
+                                        }}
+                                    />
+                                </div>
+                            </>
+                        ) : (
+                            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                                {t("gatewayDetail.deploy.noEntryPoints")}
+                            </div>
+                        )}
+                        <ErrorBanner
+                            error={deployError}
+                            fallbackKey="gateways.fallback.deployFailed"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setDeployDialog(false)}
+                        >
+                            {t("common.cancel")}
+                        </Button>
+                        <Button
+                            type="button"
+                            disabled={deploying}
+                            onClick={() => void deployGateway()}
+                        >
+                            {deploying ? (
+                                <LoaderCircle className="animate-spin" />
+                            ) : (
+                                <RefreshCw />
+                            )}
+                            {deploying
+                                ? t("gatewayDetail.deploy.deploying")
+                                : t("gatewayDetail.deploy.confirm")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Dialog open={entryDialog} onOpenChange={setEntryDialog}>
                 <DialogContent className="max-w-lg">
                     <form onSubmit={saveEntry} className="space-y-5">
@@ -489,7 +780,7 @@ export function GatewayDetailPage() {
                                     <Input id="entry-port" type="number" min={1} max={65535} required value={entryForm.listenPort} onChange={(event) => setEntryForm({ ...entryForm, listenPort: event.target.value })} />
                                 </Field>
                                 <Field label={t("gatewayDetail.entry.certificate")} htmlFor="entry-cert">
-                                    <select id="entry-cert" className={controlClass} value={entryForm.certificateCredentialId} disabled={loadingCredentials} onChange={(event) => setEntryForm({ ...entryForm, certificateCredentialId: event.target.value })}>
+                                    <select id="entry-cert" className={controlClass} value={entryForm.certificateCredentialId} disabled={loadingCredentials} onChange={(event) => updateEntryCertificate(event.target.value)}>
                                         <option value="">{t("gatewayDetail.entry.noCertificate")}</option>
                                         {loadingCredentials ? <option value="" disabled>{t("common.loadingData")}</option> : null}
                                         {credentials.map((credential) => <option key={credential.id} value={credential.id}>{credential.name}</option>)}
@@ -585,5 +876,61 @@ function Field({
             <Label htmlFor={htmlFor}>{label}</Label>
             {children}
         </div>
+    );
+}
+
+function ProgressLog({
+    entries,
+    inProgress,
+}: {
+    entries: ProgressEntry[];
+    inProgress: boolean;
+}) {
+    const { t } = useTranslation();
+    if (!entries.length) {
+        return (
+            <p className="px-1 py-2 text-xs text-muted-foreground">
+                {inProgress
+                    ? t("gateways.progress.empty")
+                    : t("gateways.progress.idle")}
+            </p>
+        );
+    }
+    return (
+        <div className="space-y-1.5">
+            <p className="px-1 text-[0.68rem] font-semibold tracking-[0.18em] text-muted-foreground uppercase">
+                {t("gateways.progress.title")}
+            </p>
+            <div className="space-y-1 font-mono text-xs">
+                {entries.map((entry, idx) => (
+                    <div
+                        key={`${entry.step}-${idx}`}
+                        className="flex items-start gap-2 px-1"
+                    >
+                        <StepIcon state={entry.state} />
+                        <span className="shrink-0 rounded bg-background px-1.5 py-0.5 text-[0.68rem] font-semibold text-muted-foreground ring-1 ring-border/60">
+                            {t(`gateways.step.${entry.step}`, undefined, entry.step)}
+                        </span>
+                        <span className="min-w-0 break-all text-foreground/80">
+                            {entry.message}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function StepIcon({ state }: { state: ProgressEntry["state"] }) {
+    if (state === "done") {
+        return (
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+        );
+    }
+    if (state === "failed") {
+        return <XCircle className="mt-0.5 size-3.5 shrink-0 text-rose-500" />;
+    }
+    return (
+        <LoaderCircle className="mt-0.5 size-3.5 shrink-0 animate-spin text-muted-foreground" />
     );
 }

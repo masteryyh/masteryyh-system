@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Editor, type OnMount } from "@monaco-editor/react";
 import { Eraser, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useMonacoTheme } from "@/hooks/use-monaco-theme";
 import { useTranslation } from "@/hooks/use-translation";
 import { cn } from "@/lib/utils";
 
@@ -24,37 +25,6 @@ export interface CodeEditorProps {
 }
 
 /**
- * 监听 <html> 的 class 变化，自动在 masteryyh-light / masteryyh-dark 主题间切换。
- * 当前项目没有显式 dark 切换 UI，但保留这一钩子，未来切换时无需改动调用方。
- */
-function useThemeMode(): "masteryyh-light" | "masteryyh-dark" {
-    const [theme, setTheme] = useState<"masteryyh-light" | "masteryyh-dark">(() =>
-        typeof document !== "undefined" &&
-        document.documentElement.classList.contains("dark")
-            ? "masteryyh-dark"
-            : "masteryyh-light",
-    );
-
-    useEffect(() => {
-        if (typeof document === "undefined") return;
-        const observer = new MutationObserver(() => {
-            setTheme(
-                document.documentElement.classList.contains("dark")
-                    ? "masteryyh-dark"
-                    : "masteryyh-light",
-            );
-        });
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-        return () => observer.disconnect();
-    }, []);
-
-    return theme;
-}
-
-/**
  * Monaco 编辑器的轻量封装：在外层套上与现有 textarea 一致的边框 / focus ring，
  * 顶端提供「上传文件」与「清空」工具按钮，底端显示字符数。
  * 文件读取在浏览器侧完成，仅文本写入编辑器，不会上传到服务器。
@@ -72,7 +42,7 @@ export function CodeEditor({
     className,
 }: CodeEditorProps) {
     const { t } = useTranslation();
-    const theme = useThemeMode();
+    const theme = useMonacoTheme();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [focused, setFocused] = useState(false);
@@ -167,6 +137,7 @@ export function CodeEditor({
                                 verticalScrollbarSize: 8,
                                 horizontalScrollbarSize: 8,
                             },
+                            alwaysConsumeMouseWheel: false,
                             wordWrap: "on" as const,
                             wrappingStrategy: "advanced" as const,
                             automaticLayout: true,

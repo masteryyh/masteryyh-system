@@ -58,6 +58,12 @@ public class GatewayEntryPoint {
     @Column(name = "certificate_credential_id")
     private UUID certificateCredentialId;
 
+    @Column(name = "current_config_content", columnDefinition = "text")
+    private String currentConfigContent;
+
+    @Column(name = "last_config_content", columnDefinition = "text")
+    private String lastConfigContent;
+
     @CreationTimestamp
     @Column(name = "created_at", columnDefinition = "timestamp not null default now()")
     private LocalDateTime createdAt;
