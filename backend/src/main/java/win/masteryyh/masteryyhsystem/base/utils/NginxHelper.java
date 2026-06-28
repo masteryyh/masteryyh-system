@@ -1,4 +1,4 @@
-package win.masteryyh.masteryyhsystem.service;
+package win.masteryyh.masteryyhsystem.base.utils;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -9,15 +9,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.springframework.stereotype.Service;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
-import win.masteryyh.masteryyhsystem.base.utils.NginxConfigCodec;
-import win.masteryyh.masteryyhsystem.base.utils.S3FileManager;
-import win.masteryyh.masteryyhsystem.base.utils.StaticArchiveValidator;
 import win.masteryyh.masteryyhsystem.base.utils.crypto.CryptoUtils;
 import win.masteryyh.masteryyhsystem.model.Credential;
 import win.masteryyh.masteryyhsystem.model.GatewayConfig;
 import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
 import win.masteryyh.masteryyhsystem.model.GatewayRoute;
 import win.masteryyh.masteryyhsystem.model.StoredFile;
+import win.masteryyh.masteryyhsystem.model.dto.DeploymentBundle;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayRouteType;
 import win.masteryyh.masteryyhsystem.repository.CredentialRepository;
 import win.masteryyh.masteryyhsystem.repository.GatewayEntryPointRepository;
@@ -36,7 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class NginxDeploymentBundleService {
+public class NginxHelper {
     private final GatewayEntryPointRepository entryPointRepository;
 
     private final GatewayRouteRepository routeRepository;
@@ -51,13 +49,13 @@ public class NginxDeploymentBundleService {
 
     private final NginxConfigCodec codec;
 
-    public NginxDeploymentBundleService(GatewayEntryPointRepository entryPointRepository,
-                                        GatewayRouteRepository routeRepository,
-                                        CredentialRepository credentialRepository,
-                                        StoredFileRepository fileRepository,
-                                        S3FileManager storage,
-                                        StaticArchiveValidator archiveValidator,
-                                        NginxConfigCodec codec) {
+    public NginxHelper(GatewayEntryPointRepository entryPointRepository,
+                       GatewayRouteRepository routeRepository,
+                       CredentialRepository credentialRepository,
+                       StoredFileRepository fileRepository,
+                       S3FileManager storage,
+                       StaticArchiveValidator archiveValidator,
+                       NginxConfigCodec codec) {
         this.entryPointRepository = entryPointRepository;
         this.routeRepository = routeRepository;
         this.credentialRepository = credentialRepository;
@@ -181,9 +179,5 @@ public class NginxDeploymentBundleService {
             throw new BusinessException(500, "error.gateway.bundleFailed",
                     "Failed to build gateway deployment bundle: " + e.getMessage());
         }
-    }
-
-    public record DeploymentBundle(Map<String, byte[]> files, List<Integer> listenPorts,
-                                   boolean customMainConfig) {
     }
 }

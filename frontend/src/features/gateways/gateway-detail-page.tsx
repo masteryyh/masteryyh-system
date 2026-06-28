@@ -51,6 +51,14 @@ import type {
 const controlClass =
     "h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
+const credentialPageSize = 1000;
+
+function certificateCredentials(credentials: Credential[]) {
+    return credentials.filter(
+        (credential) => credential.credentialType === "X509_CERTIFICATE",
+    );
+}
+
 export function GatewayDetailPage() {
     const { gatewayId = "" } = useParams();
     const api = useApi();
@@ -69,6 +77,7 @@ export function GatewayDetailPage() {
     const [editingEntry, setEditingEntry] = useState<GatewayEntryPoint | null>(null);
     const [editingRoute, setEditingRoute] = useState<GatewayRoute | null>(null);
     const [saving, setSaving] = useState(false);
+    const [loadingCredentials, setLoadingCredentials] = useState(false);
     const [formError, setFormError] = useState<unknown>(null);
     const [entryForm, setEntryForm] = useState({
         name: "",
@@ -85,6 +94,14 @@ export function GatewayDetailPage() {
         staticFileId: "",
     });
 
+    const loadCertificateCredentials = useCallback(async () => {
+        const credentialPage = await api.credentials.list({
+            page: 1,
+            pageSize: credentialPageSize,
+        });
+        setCredentials(certificateCredentials(credentialPage.data));
+    }, [api.credentials]);
+
     const load = useCallback(async () => {
         setLoading(true);
         setError(null);
@@ -93,7 +110,10 @@ export function GatewayDetailPage() {
                 await Promise.all([
                     api.gateways.get(gatewayId),
                     api.gateways.listEntryPoints(gatewayId),
-                    api.credentials.list({ page: 1, pageSize: 1000 }),
+                    api.credentials.list({
+                        page: 1,
+                        pageSize: credentialPageSize,
+                    }),
                     api.files.list({ page: 1, pageSize: 1000 }),
                 ]);
             const routePairs = await Promise.all(
@@ -105,11 +125,7 @@ export function GatewayDetailPage() {
             setGateway(gatewayData);
             setEntryPoints(entries);
             setRoutes(Object.fromEntries(routePairs));
-            setCredentials(
-                credentialPage.data.filter(
-                    (credential) => credential.credentialType === "X509_CERTIFICATE",
-                ),
-            );
+            setCredentials(certificateCredentials(credentialPage.data));
             setFiles(filePage.data);
             setSelectedId((current) =>
                 entries.some((entry) => entry.id === current)
@@ -133,7 +149,7 @@ export function GatewayDetailPage() {
         [entryPoints, selectedId],
     );
 
-    function openEntry(entry?: GatewayEntryPoint) {
+    async function openEntry(entry?: GatewayEntryPoint) {
         setEditingEntry(entry ?? null);
         setEntryForm(
             entry
@@ -153,6 +169,14 @@ export function GatewayDetailPage() {
         );
         setFormError(null);
         setEntryDialog(true);
+        setLoadingCredentials(true);
+        try {
+            await loadCertificateCredentials();
+        } catch (loadError) {
+            setFormError(loadError);
+        } finally {
+            setLoadingCredentials(false);
+        }
     }
 
     function openRoute(route?: GatewayRoute) {
@@ -313,7 +337,7 @@ export function GatewayDetailPage() {
                             {gateway?.description || t("gatewayDetail.description")}
                         </p>
                     </div>
-                    <Button onClick={() => openEntry()}>
+                    <Button onClick={() => void openEntry()}>
                         <Plus />
                         {t("gatewayDetail.entry.add")}
                     </Button>
@@ -384,7 +408,7 @@ export function GatewayDetailPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <Button variant="outline" size="sm" onClick={() => openEntry(selected)}>
+                                    <Button variant="outline" size="sm" onClick={() => void openEntry(selected)}>
                                         <Pencil />
                                         {t("common.edit")}
                                     </Button>
@@ -465,8 +489,9 @@ export function GatewayDetailPage() {
                                     <Input id="entry-port" type="number" min={1} max={65535} required value={entryForm.listenPort} onChange={(event) => setEntryForm({ ...entryForm, listenPort: event.target.value })} />
                                 </Field>
                                 <Field label={t("gatewayDetail.entry.certificate")} htmlFor="entry-cert">
-                                    <select id="entry-cert" className={controlClass} value={entryForm.certificateCredentialId} onChange={(event) => setEntryForm({ ...entryForm, certificateCredentialId: event.target.value })}>
+                                    <select id="entry-cert" className={controlClass} value={entryForm.certificateCredentialId} disabled={loadingCredentials} onChange={(event) => setEntryForm({ ...entryForm, certificateCredentialId: event.target.value })}>
                                         <option value="">{t("gatewayDetail.entry.noCertificate")}</option>
+                                        {loadingCredentials ? <option value="" disabled>{t("common.loadingData")}</option> : null}
                                         {credentials.map((credential) => <option key={credential.id} value={credential.id}>{credential.name}</option>)}
                                     </select>
                                 </Field>

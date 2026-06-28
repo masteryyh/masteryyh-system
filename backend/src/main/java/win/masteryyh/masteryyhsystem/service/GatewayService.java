@@ -25,10 +25,12 @@ import win.masteryyh.masteryyhsystem.base.page.PagedResponse;
 import win.masteryyh.masteryyhsystem.base.utils.AsyncTaskExecutor;
 import win.masteryyh.masteryyhsystem.base.utils.ClasspathResources;
 import win.masteryyh.masteryyhsystem.base.utils.NginxConfigCodec;
+import win.masteryyh.masteryyhsystem.base.utils.NginxHelper;
 import win.masteryyh.masteryyhsystem.base.websocket.EventBroadcaster;
 import win.masteryyh.masteryyhsystem.model.AppPlatform;
 import win.masteryyh.masteryyhsystem.model.GatewayConfig;
 import win.masteryyh.masteryyhsystem.model.dto.AddGatewayConfigDto;
+import win.masteryyh.masteryyhsystem.model.dto.DeploymentBundle;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayConfigDto;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayStatus;
 import win.masteryyh.masteryyhsystem.model.dto.InitSystem;
@@ -60,7 +62,6 @@ public class GatewayService {
     private static final String SETUP_SCRIPT_REMOTE = "/tmp/gateway_setup.sh";
     private static final long INSTALL_TIMEOUT_SECONDS = 600L;
     private static final String NGINX_CONTAINER_PREFIX = "gateway-nginx-";
-    private static final String VOLUME_PREFIX = "gwconf-";
     private static final String CONF_D_DIR = "/etc/nginx/conf.d";
     private static final String SYSTEMD_SERVICE = "nginx";
 
@@ -78,7 +79,7 @@ public class GatewayService {
 
     private final ClasspathResources resources;
 
-    private final NginxDeploymentBundleService bundleService;
+    private final NginxHelper nginxHelper;
 
     private final NginxConfigCodec nginxConfigCodec;
 
@@ -93,7 +94,7 @@ public class GatewayService {
             EventBroadcaster eventBroadcaster,
             RedissonClient redisson,
             ClasspathResources resources,
-            NginxDeploymentBundleService bundleService,
+            NginxHelper nginxHelper,
             NginxConfigCodec nginxConfigCodec,
             win.masteryyh.masteryyhsystem.repository.GatewayEntryPointRepository entryPointRepository,
             win.masteryyh.masteryyhsystem.repository.GatewayRouteRepository routeRepository) {
@@ -104,7 +105,7 @@ public class GatewayService {
         this.eventBroadcaster = eventBroadcaster;
         this.redis = redisson;
         this.resources = resources;
-        this.bundleService = bundleService;
+        this.nginxHelper = nginxHelper;
         this.nginxConfigCodec = nginxConfigCodec;
         this.entryPointRepository = entryPointRepository;
         this.routeRepository = routeRepository;
@@ -360,8 +361,8 @@ public class GatewayService {
                 .exec(new PullImageResultCallback())
                 .awaitCompletion();
 
-        NginxDeploymentBundleService.DeploymentBundle bundle = bundleService.build(cfg);
-        byte[] archive = bundleService.dockerTar(bundle);
+        DeploymentBundle bundle = nginxHelper.build(cfg);
+        byte[] archive = nginxHelper.dockerTar(bundle);
 
         eventBroadcaster.publish(channel, "progress",
                 Map.of("step", "config", "message", "Building candidate nginx configuration"));
@@ -502,10 +503,10 @@ public class GatewayService {
                     "gateway_setup.sh " + action + " failed (exit " + result.exitCode() + "): " + result.stderr());
         }
 
-        NginxDeploymentBundleService.DeploymentBundle bundle = bundleService.build(cfg);
+        DeploymentBundle bundle = nginxHelper.build(cfg);
         eventBroadcaster.publish(channel, "progress",
                 Map.of("step", "upload-config", "message", "Uploading candidate nginx deployment bundle"));
-        sshManager.uploadBytes(platformId, bundleService.hostTar(bundle), remoteArchivePath);
+        sshManager.uploadBytes(platformId, nginxHelper.hostTar(bundle), remoteArchivePath);
         deployHostBundle(cfg, bundle, remoteArchivePath, channel);
 
         cfg.setSystemdServiceName(SYSTEMD_SERVICE);
@@ -518,7 +519,7 @@ public class GatewayService {
     }
 
     private void deployHostBundle(GatewayConfig cfg,
-                                  NginxDeploymentBundleService.DeploymentBundle bundle,
+                                  DeploymentBundle bundle,
                                   String remoteArchivePath,
                                   String channel) {
         String gatewayPrefix = cfg.getName() + "-";
