@@ -16,8 +16,13 @@ import win.masteryyh.masteryyhsystem.base.page.PagedResponse;
 import win.masteryyh.masteryyhsystem.model.dto.AddAppPlatformDto;
 import win.masteryyh.masteryyhsystem.model.dto.AppPlatformDto;
 import win.masteryyh.masteryyhsystem.model.dto.UpdateAppPlatformDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerContainerDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerImageDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerNetworkDto;
+import win.masteryyh.masteryyhsystem.model.dto.docker.DockerVolumeDto;
 import win.masteryyh.masteryyhsystem.service.AppPlatformService;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -54,5 +59,25 @@ public class AppPlatformController {
     @DeleteMapping("/delete/{id}")
     public void remove(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
         service.remove(id);
+    }
+
+    @GetMapping("/{id}/containers")
+    public List<DockerContainerDto> containers(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
+        return service.listContainers(id);
+    }
+
+    @GetMapping("/{id}/images")
+    public List<DockerImageDto> images(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
+        return service.listImages(id);
+    }
+
+    @GetMapping("/{id}/networks")
+    public List<DockerNetworkDto> networks(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
+        return service.listNetworks(id);
+    }
+
+    @GetMapping("/{id}/volumes")
+    public List<DockerVolumeDto> volumes(@PathVariable @NotNull(message = "ID cannot be null") UUID id) {
+        return service.listVolumes(id);
     }
 }

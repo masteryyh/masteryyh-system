@@ -83,6 +83,59 @@ export function formatDate(value: string): string {
     return dateTimeFormatter.format(date);
 }
 
+/**
+ * 把 epoch 毫秒按显示时区格式化为 `yyyy/MM/dd HH:mm`，用于 Docker 资源时间戳。
+ */
+export function formatEpoch(value: number | null | undefined): string {
+    const date = parseEpochMs(value);
+    if (!date) return "";
+    return dateTimeFormatter.format(date);
+}
+
+/**
+ * 把 epoch 毫秒解析为 Date。后端 Docker 资源的时间戳以 epoch 毫秒或 ISO 字符串下发。
+ */
+export function parseEpochMs(value: number | string | null | undefined): Date | null {
+    if (value === null || value === undefined) return null;
+    const date = typeof value === "number" ? new Date(value) : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Docker 容器"运行多久"风格的人类可读时长，如 `3d 2h`、`12m 4s`、`8s`。
+ * 负值或非法入参返回空串。
+ */
+export function formatDuration(ms: number | null | undefined): string {
+    if (ms === null || ms === undefined || ms < 0 || !Number.isFinite(ms)) {
+        return "";
+    }
+    const totalSeconds = Math.floor(ms / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+}
+
+/**
+ * 字节数格式化，采用 1020 量级二进制（KiB）展示为 `1.2 GiB`，小于 1 KiB 回退到 `B`。
+ */
+export function formatBytes(value: number | null | undefined): string {
+    if (value === null || value === undefined || value < 0) return "";
+    if (value < 1024) return `${value} B`;
+    const units = ["KiB", "MiB", "GiB", "TiB", "PiB"];
+    let scaled = value / 1024;
+    let unit = 0;
+    while (scaled >= 1024 && unit < units.length - 1) {
+        scaled /= 1024;
+        unit += 1;
+    }
+    return `${scaled.toFixed(scaled >= 100 ? 0 : 1)} ${units[unit]}`;
+}
+
 export function formatFingerprint(value: string): string {
     if (!/^[0-9a-f]{64}$/i.test(value)) return value;
     return value.match(/.{2}/g)?.join(":") ?? value;

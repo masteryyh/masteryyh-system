@@ -274,7 +274,96 @@
             "OPENRC": "OpenRC"
         },
         "actions": {
-            "openShell": "Launch web shell"
+            "openShell": "Launch web shell",
+            "openDetail": "View details"
+        },
+        "detail": {
+            "backToHome": "Back to home",
+            "loading": "Loading platform…",
+            "refresh": "Refresh",
+            "yes": "Yes",
+            "no": "No",
+            "nav": {
+                "group": "Platform",
+                "overview": "Overview",
+                "dockerGroup": "Docker resources",
+                "hostGroup": "Host resources",
+                "images": "Images",
+                "containers": "Containers",
+                "networks": "Networks",
+                "volumes": "Volumes",
+                "services": "Services",
+                "cron": "cron"
+            },
+            "overview": {
+                "runningContainers": "Running containers",
+                "runningContainersDesc": "{count} container(s) currently running",
+                "images": "Images",
+                "imagesDesc": "{count} image(s) held by this platform",
+                "hostPendingTitle": "Waiting for host agent",
+                "hostPendingDesc": "The host overview will appear once the agent reports data."
+            },
+            "containers": {
+                "title": "Containers"
+            },
+            "containersDesc": "{count} container(s) on this platform",
+            "images": {
+                "title": "Images"
+            },
+            "imagesDesc": "{count} image(s) on this platform",
+            "networks": {
+                "title": "Networks"
+            },
+            "networksDesc": "{count} network(s) on this platform",
+            "volumes": {
+                "title": "Volumes"
+            },
+            "volumesDesc": "{count} volume(s) on this platform",
+            "services": {
+                "title": "Services",
+                "pendingDesc": "Service list is pending the host agent report."
+            },
+            "cron": {
+                "title": "cron",
+                "pendingDesc": "cron jobs are pending the host agent report."
+            },
+            "columns": {
+                "id": "ID",
+                "created": "Created",
+                "container": {
+                    "name": "Name",
+                    "image": "Image",
+                    "uptime": "Uptime",
+                    "status": "Status",
+                    "ports": "Ports"
+                },
+                "image": {
+                    "name": "Name",
+                    "tags": "Tags",
+                    "arch": "Arch",
+                    "size": "Size"
+                },
+                "network": {
+                    "name": "Name",
+                    "driver": "Driver",
+                    "scope": "Scope",
+                    "internal": "Internal"
+                },
+                "volume": {
+                    "name": "Name",
+                    "driver": "Driver",
+                    "mountpoint": "Mountpoint"
+                }
+            },
+            "empty": {
+                "containers": "No containers",
+                "images": "No images",
+                "networks": "No networks",
+                "volumes": "No volumes"
+            },
+            "fallback": {
+                "loadFailed": "Failed to load platform details"
+            }
         }
     },
     "gateways": {
@@ -564,6 +653,8 @@
                 "empty": "Please choose an init system for the host"
             },
             "notHost": "This platform is not a HOST platform",
+            "notDocker": "This platform is not a Docker platform",
+            "offline": "Target platform is offline",
             "commandFailed": "Remote command execution failed",
             "uploadFailed": "Failed to upload the file to the remote platform",
             "shellNotSupported": "This platform does not support the web shell",

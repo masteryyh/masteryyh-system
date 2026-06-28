@@ -122,6 +122,53 @@ export interface AppPlatformRequest {
     hostKeys?: string[] | null;
 }
 
+/**
+ * Docker 容器概要，对应 GET /v1/platforms/{id}/containers。
+ */
+export interface DockerContainer {
+    id: string;
+    name: string | null;
+    image: string | null;
+    imageId: string | null;
+    state: string | null;
+    status: string | null;
+    createdAt: number | null;
+    command: string | null;
+    ports: string[];
+}
+
+/**
+ * Docker 镜像概要，对应 GET /v1/platforms/{id}/images。
+ */
+export interface DockerImage {
+    id: string;
+    repoTags: string[];
+    arch: string | null;
+    os: string | null;
+    size: number | null;
+    createdAt: string | null;
+}
+
+/**
+ * Docker 网络概要，对应 GET /v1/platforms/{id}/networks。
+ */
+export interface DockerNetwork {
+    id: string;
+    name: string | null;
+    driver: string | null;
+    scope: string | null;
+    internal: boolean;
+}
+
+/**
+ * Docker 卷概要，对应 GET /v1/platforms/{id}/volumes。
+ */
+export interface DockerVolume {
+    name: string;
+    driver: string | null;
+    mountpoint: string | null;
+}
+
 export type GatewayStatus =
     | "HEALTHY"
     | "STARTING"

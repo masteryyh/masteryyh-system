@@ -13,6 +13,15 @@ import { FilesPage } from "@/features/files/files-page";
 import { HomePage } from "@/features/home/home-page";
 import { LoginPage } from "@/features/login/login-page";
 import { PlatformsPage } from "@/features/platforms/platforms-page";
+import { PlatformDetailPage } from "@/features/platforms/platform-detail-page";
+import {
+    ContainersPanel,
+    HostPlaceholderPanel,
+    ImagesPanel,
+    NetworksPanel,
+    OverviewPanel,
+    VolumesPanel,
+} from "@/features/platforms/platform-panels";
 import { I18nProvider } from "@/i18n/provider";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicRoute } from "@/routes/public-route";
@@ -62,6 +71,40 @@ function App() {
                                         <Route
                                             path="/files"
                                             element={<FilesPage />}
+                                        />
+                                    </Route>
+                                    <Route
+                                        path="/platforms/:platformId"
+                                        element={<PlatformDetailPage />}
+                                    >
+                                        <Route index element={<OverviewPanel />} />
+                                        <Route
+                                            path="images"
+                                            element={<ImagesPanel />}
+                                        />
+                                        <Route
+                                            path="containers"
+                                            element={<ContainersPanel />}
+                                        />
+                                        <Route
+                                            path="networks"
+                                            element={<NetworksPanel />}
+                                        />
+                                        <Route
+                                            path="volumes"
+                                            element={<VolumesPanel />}
+                                        />
+                                        <Route
+                                            path="services"
+                                            element={
+                                                <HostPlaceholderPanel kind="services" />
+                                            }
+                                        />
+                                        <Route
+                                            path="cron"
+                                            element={
+                                                <HostPlaceholderPanel kind="cron" />
+                                            }
                                         />
                                     </Route>
                                 </Route>

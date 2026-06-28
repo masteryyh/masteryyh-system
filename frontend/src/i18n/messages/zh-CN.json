@@ -274,7 +274,96 @@
             "OPENRC": "OpenRC"
         },
         "actions": {
-            "openShell": "启动网页 Shell"
+            "openShell": "启动网页 Shell",
+            "openDetail": "查看详情"
+        },
+        "detail": {
+            "backToHome": "回到主页",
+            "loading": "加载平台信息…",
+            "refresh": "刷新",
+            "yes": "是",
+            "no": "否",
+            "nav": {
+                "group": "平台",
+                "overview": "概览",
+                "dockerGroup": "Docker 资源",
+                "hostGroup": "主机资源",
+                "images": "镜像",
+                "containers": "容器",
+                "networks": "网络",
+                "volumes": "卷",
+                "services": "服务",
+                "cron": "cron"
+            },
+            "overview": {
+                "runningContainers": "运行中的容器",
+                "runningContainersDesc": "当前正在运行的容器，共 {count} 个",
+                "images": "镜像",
+                "imagesDesc": "该平台持有的镜像，共 {count} 个",
+                "hostPendingTitle": "等待主机 agent",
+                "hostPendingDesc": "主机平台将在 agent 上报数据后展示概览，敬请期待。"
+            },
+            "containers": {
+                "title": "容器"
+            },
+            "containersDesc": "平台上的全部容器，共 {count} 个",
+            "images": {
+                "title": "镜像"
+            },
+            "imagesDesc": "平台上的全部镜像，共 {count} 个",
+            "networks": {
+                "title": "网络"
+            },
+            "networksDesc": "平台上的全部网络，共 {count} 个",
+            "volumes": {
+                "title": "卷"
+            },
+            "volumesDesc": "平台上的全部卷，共 {count} 个",
+            "services": {
+                "title": "服务",
+                "pendingDesc": "服务列表等待主机 agent 上报，暂未提供数据。"
+            },
+            "cron": {
+                "title": "cron",
+                "pendingDesc": "cron 任务列表等待主机 agent 上报，暂未提供数据。"
+            },
+            "columns": {
+                "id": "ID",
+                "created": "创建时间",
+                "container": {
+                    "name": "名称",
+                    "image": "镜像",
+                    "uptime": "运行时长",
+                    "status": "状态",
+                    "ports": "端口"
+                },
+                "image": {
+                    "name": "名称",
+                    "tags": "标签",
+                    "arch": "架构",
+                    "size": "大小"
+                },
+                "network": {
+                    "name": "名称",
+                    "driver": "驱动",
+                    "scope": "作用域",
+                    "internal": "仅内部"
+                },
+                "volume": {
+                    "name": "名称",
+                    "driver": "驱动",
+                    "mountpoint": "挂载点"
+                }
+            },
+            "empty": {
+                "containers": "暂无容器",
+                "images": "暂无镜像",
+                "networks": "暂无网络",
+                "volumes": "暂无卷"
+            },
+            "fallback": {
+                "loadFailed": "平台详情加载失败"
+            }
         }
     },
     "gateways": {
@@ -565,6 +654,8 @@
                 "empty": "请选择主机的 init system"
             },
             "notHost": "该平台不是 HOST 类型",
+            "notDocker": "该平台不是 Docker 类型",
+            "offline": "目标平台离线，请检查连接后重试",
             "commandFailed": "远程命令执行失败",
             "uploadFailed": "文件上传到远程平台失败",
             "shellNotSupported": "该平台不支持网页 Shell",

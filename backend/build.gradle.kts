@@ -1,4 +1,4 @@
-
+import java.time.ZoneId;
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -81,7 +81,7 @@ val generateBuildInfo by tasks.registering {
             }
         }.getOrNull()?.takeIf { it.isNotBlank() } ?: "unknown"
 
-        val buildDateTime = LocalDateTime.now()
+        val buildDateTime = LocalDateTime.now(ZoneId.of("Asia/Shanghai"))
         val versionTimestamp = buildDateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmm"))
         val version = if (System.getenv("CI").isNullOrBlank()) {
             "dirty-$versionTimestamp"
