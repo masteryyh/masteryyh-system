@@ -616,7 +616,7 @@
         },
         "gatewayEntryPoint": {
             "notFound": "Gateway entry point not found",
-            "alreadyExists": "An entry point with the same name or listen port already exists in this gateway",
+            "alreadyExists": "An entry point with the same name, or the same listen port and domain, already exists in this gateway",
             "name": {
                 "invalid": "Entry point name may only contain letters, digits, dots, underscores, and hyphens"
             },
