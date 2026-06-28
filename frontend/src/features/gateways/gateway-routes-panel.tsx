@@ -71,7 +71,7 @@ const emptyEntryForm: EntryFormState = {
     domains: "",
     certificateCredentialId: "",
     wsEnabled: false,
-    clientMaxBodySize: "",
+    clientMaxBodySize: "1g",
 };
 
 const emptyRouteForm: RouteFormState = {

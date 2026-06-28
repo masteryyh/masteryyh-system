@@ -11,8 +11,8 @@ spring:
     name: masteryyh-system
   servlet:
     multipart:
-      max-file-size: 100MB
-      max-request-size: 105MB
+      max-file-size: 1GB
+      max-request-size: 1100MB
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/test}
     username: ${DATABASE_USERNAME:postgres}
@@ -50,6 +50,3 @@ system:
       access-key: ${S3_ACCESS_KEY:some-access-key}
       secret-key: ${S3_SECRET_KEY:some-secret-key}
       path-style-access: ${S3_PATH_STYLE_ACCESS:true}
-  gateway:
-    max-static-files: 10000
-    max-static-uncompressed-size: 536870912
