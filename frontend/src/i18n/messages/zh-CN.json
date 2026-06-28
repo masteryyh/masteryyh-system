@@ -482,7 +482,7 @@
             "file": "文件内容",
             "replace": "替换文件内容（可选）",
             "choose": "点击选择文件",
-            "limit": "单文件最大 100 MiB"
+            "limit": "单文件最大 1 GiB"
         },
         "deleteConfirm": "确定删除文件「{name}」吗？",
         "success": {

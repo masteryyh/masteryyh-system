@@ -481,7 +481,7 @@
             "file": "File content",
             "replace": "Replace content (optional)",
             "choose": "Choose a file",
-            "limit": "Maximum file size: 100 MiB"
+            "limit": "Maximum file size: 1 GiB"
         },
         "deleteConfirm": "Delete file \"{name}\"?",
         "success": {
