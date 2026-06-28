@@ -20,6 +20,8 @@ import org.hibernate.annotations.UuidGenerator;
 import org.hibernate.proxy.HibernateProxy;
 import org.hibernate.type.SqlTypes;
 
+import win.masteryyh.masteryyhsystem.model.dto.GatewayExtraConfig;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +59,11 @@ public class GatewayEntryPoint {
 
     @Column(name = "certificate_credential_id")
     private UUID certificateCredentialId;
+
+    @Column(name = "extra_config", columnDefinition = "jsonb")
+    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    private GatewayExtraConfig extraConfig;
 
     @Column(name = "current_config_content", columnDefinition = "text")
     private String currentConfigContent;

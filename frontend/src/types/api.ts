@@ -245,6 +245,7 @@ export interface GatewayEntryPoint {
     listenPort: number;
     domainNames: string[];
     certificateCredentialId: string | null;
+    extraConfig: GatewayExtraConfig | null;
     currentConfigContent: string | null;
     lastConfigContent: string | null;
     createdAt: string;
@@ -256,9 +257,15 @@ export interface GatewayEntryPointRequest {
     listenPort: number;
     domainNames: string[];
     certificateCredentialId?: string | null;
+    extraConfig?: GatewayExtraConfig | null;
 }
 
 export type GatewayRouteType = "PROXY" | "STATIC";
+
+export interface GatewayExtraConfig {
+    webSocket?: boolean | null;
+    clientMaxBodySize?: string | null;
+}
 
 export interface GatewayRoute {
     id: string;
@@ -269,6 +276,7 @@ export interface GatewayRoute {
     priority: number;
     proxyTarget: string | null;
     staticFileId: string | null;
+    extraConfig: GatewayExtraConfig | null;
     createdAt: string;
     updatedAt: string;
 }
@@ -280,4 +288,5 @@ export interface GatewayRouteRequest {
     priority: number;
     proxyTarget?: string | null;
     staticFileId?: string | null;
+    extraConfig?: GatewayExtraConfig | null;
 }

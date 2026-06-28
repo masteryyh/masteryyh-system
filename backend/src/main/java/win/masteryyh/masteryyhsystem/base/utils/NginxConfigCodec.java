@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import win.masteryyh.masteryyhsystem.base.exception.BusinessException;
 import win.masteryyh.masteryyhsystem.model.GatewayEntryPoint;
 import win.masteryyh.masteryyhsystem.model.GatewayRoute;
+import win.masteryyh.masteryyhsystem.model.dto.GatewayExtraConfig;
 import win.masteryyh.masteryyhsystem.model.dto.GatewayRouteType;
 
 import java.util.ArrayList;
@@ -44,6 +45,13 @@ public class NginxConfigCodec {
             config.append("    ssl_protocols TLSv1.2 TLSv1.3;\n");
         }
 
+        GatewayExtraConfig entryExtra = entryPoint.getExtraConfig();
+        if (entryExtra != null && entryExtra.hasClientMaxBodySize()) {
+            config.append("\n");
+            config.append("    client_max_body_size ")
+                    .append(entryExtra.normalizedClientMaxBodySize()).append(";\n");
+        }
+
         for (GatewayRoute route : routes) {
             config.append("\n");
             config.append("    location ").append(route.getPathPrefix()).append(" {\n");
@@ -53,6 +61,20 @@ public class NginxConfigCodec {
                 config.append("        proxy_set_header X-Real-IP $remote_addr;\n");
                 config.append("        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n");
                 config.append("        proxy_set_header X-Forwarded-Proto $scheme;\n");
+                GatewayExtraConfig effective =
+                        GatewayExtraConfig.effective(route.getExtraConfig(), entryExtra);
+
+                if (effective.webSocketEnabled()) {
+                    config.append("        proxy_http_version 1.1;\n");
+                    config.append("        proxy_set_header Upgrade $http_upgrade;\n");
+                    config.append("        proxy_set_header Connection $http_connection;\n");
+                }
+
+                GatewayExtraConfig routeExtra = route.getExtraConfig();
+                if (routeExtra != null && routeExtra.hasClientMaxBodySize()) {
+                    config.append("        client_max_body_size ")
+                            .append(routeExtra.normalizedClientMaxBodySize()).append(";\n");
+                }
             } else {
                 String staticRoot = "/var/www/masteryyh/" + entryPoint.getGatewayId() + "/" + route.getId();
                 if ("/".equals(route.getPathPrefix())) {

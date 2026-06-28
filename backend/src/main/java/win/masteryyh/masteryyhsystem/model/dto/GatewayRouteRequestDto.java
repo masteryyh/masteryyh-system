@@ -12,5 +12,6 @@ public record GatewayRouteRequestDto(
         @NotNull(message = "validation.gatewayRoute.type.notNull") GatewayRouteType routeType,
         @Min(value = 0, message = "validation.gatewayRoute.priority.min") int priority,
         String proxyTarget,
-        UUID staticFileId) {
+        UUID staticFileId,
+        GatewayExtraConfig extraConfig) {
 }

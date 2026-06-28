@@ -7,20 +7,21 @@ import {
     type ReactNode,
 } from "react";
 import {
+    ArrowUpRight,
     CheckCircle2,
     ChevronRight,
     Container,
     LoaderCircle,
+    MoreHorizontal,
     Network,
     Pencil,
     Plus,
     RefreshCw,
     Server,
-    SlidersHorizontal,
     Trash2,
     XCircle,
 } from "lucide-react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 
 import {
     EmptyState,
@@ -40,6 +41,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApi } from "@/hooks/use-api";
@@ -93,6 +100,7 @@ export function GatewaysPage() {
     const api = useApi();
     const notify = useNotify();
     const { t } = useTranslation();
+    const navigate = useNavigate();
 
     const [page, setPage] = useState(1);
     const [result, setResult] = useState<PagedResponse<GatewayConfig> | null>(
@@ -546,6 +554,9 @@ export function GatewaysPage() {
                                             onToggleExpand={() =>
                                                 toggleExpand(gateway.id)
                                             }
+                                            onOpen={() =>
+                                                navigate(`/gateways/${gateway.id}`)
+                                            }
                                             onEdit={() => openEdit(gateway)}
                                             onDeploy={
                                                 gateway.pendingChanges
@@ -803,6 +814,7 @@ function GatewayRow({
     entries,
     isExpanded,
     onToggleExpand,
+    onOpen,
     onEdit,
     onDeploy,
     onDelete,
@@ -812,6 +824,7 @@ function GatewayRow({
     entries: ProgressEntry[];
     isExpanded: boolean;
     onToggleExpand: () => void;
+    onOpen: () => void;
     onEdit: () => void;
     onDeploy?: () => void;
     onDelete: () => void;
@@ -826,14 +839,22 @@ function GatewayRow({
 
     return (
         <>
-            <tr className="transition-colors hover:bg-muted/25">
+            <tr
+                onClick={onOpen}
+                className="cursor-pointer transition-colors hover:bg-muted/40"
+            >
                 <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                         <span className="grid size-8 shrink-0 place-items-center rounded-lg border bg-background">
                             <Network className="size-4 text-muted-foreground" />
                         </span>
                         <div className="min-w-0">
-                            <p className="font-medium">{gateway.name}</p>
+                            <p className="group flex items-center gap-1 font-medium">
+                                <span className="underline-offset-4 group-hover:underline">
+                                    {gateway.name}
+                                </span>
+                                <ArrowUpRight className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                            </p>
                             <p className="max-w-52 truncate text-xs text-muted-foreground">
                                 {gateway.description ||
                                     t("gateways.eyebrow")}
@@ -881,20 +902,11 @@ function GatewayRow({
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                     {formatDate(gateway.updatedAt)}
                 </td>
-                <td className="px-4 py-3">
+                <td
+                    className="px-4 py-3"
+                    onClick={(event) => event.stopPropagation()}
+                >
                     <div className="flex items-center justify-end gap-1">
-                        <Button
-                            asChild
-                            variant="ghost"
-                            size="icon-sm"
-                        >
-                            <Link
-                                to={`/gateways/${gateway.id}`}
-                                aria-label={t("gateways.actions.manage")}
-                            >
-                                <SlidersHorizontal className="size-4" />
-                            </Link>
-                        </Button>
                         <Button
                             variant="ghost"
                             size="icon-sm"
@@ -908,37 +920,44 @@ function GatewayRow({
                                 )}
                             />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={onEdit}
-                            aria-label={t("common.edit")}
-                        >
-                            <Pencil className="size-4" />
-                        </Button>
-                        {onDeploy && !inProgress ? (
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={onDeploy}
-                                aria-label={t("gateways.actions.deploy")}
-                            >
-                                <RefreshCw className="size-4" />
-                            </Button>
-                        ) : null}
-                        <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={onDelete}
-                            aria-label={t("common.delete")}
-                        >
-                            <Trash2 className="size-4" />
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon-sm">
+                                    <MoreHorizontal />
+                                    <span className="sr-only">
+                                        {t("common.actions")}
+                                    </span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                                <DropdownMenuItem onClick={onOpen}>
+                                    <ArrowUpRight />
+                                    {t("gateways.actions.openDetail")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={onEdit}>
+                                    <Pencil />
+                                    {t("common.edit")}
+                                </DropdownMenuItem>
+                                {onDeploy && !inProgress ? (
+                                    <DropdownMenuItem onClick={onDeploy}>
+                                        <RefreshCw />
+                                        {t("gateways.actions.deploy")}
+                                    </DropdownMenuItem>
+                                ) : null}
+                                <DropdownMenuItem
+                                    variant="destructive"
+                                    onClick={onDelete}
+                                >
+                                    <Trash2 />
+                                    {t("common.delete")}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </td>
             </tr>
             {isExpanded ? (
-                <tr>
+                <tr onClick={(event) => event.stopPropagation()}>
                     <td colSpan={6} className="bg-muted/25 px-4 py-3">
                         <ProgressLog entries={entries} inProgress={inProgress} />
                     </td>

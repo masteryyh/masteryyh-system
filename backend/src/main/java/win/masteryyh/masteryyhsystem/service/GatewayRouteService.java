@@ -97,12 +97,17 @@ public class GatewayRouteService {
         route.setPriority(data.priority());
         route.setProxyTarget(data.routeType() == GatewayRouteType.PROXY ? data.proxyTarget() : null);
         route.setStaticFileId(data.routeType() == GatewayRouteType.STATIC ? data.staticFileId() : null);
+        route.setExtraConfig(data.extraConfig());
     }
 
     private void validate(GatewayRouteRequestDto data) {
         if (!data.pathPrefix().startsWith("/")) {
             throw new BusinessException(400, "error.gatewayRoute.path.invalid",
                     "Route path must start with /");
+        }
+        if (data.extraConfig() != null && !data.extraConfig().clientMaxBodySizeValid()) {
+            throw new BusinessException(400, "error.gateway.extraConfig.clientMaxBodySize.invalid",
+                    "client_max_body_size must match nginx size syntax, e.g. 100m / 512k / 0");
         }
         if (data.routeType() == GatewayRouteType.PROXY) {
             if (StringUtils.isBlank(data.proxyTarget())) {

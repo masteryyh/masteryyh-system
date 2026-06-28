@@ -435,7 +435,8 @@
         "actions": {
             "toggleLog": "Toggle progress log",
             "manage": "Manage entry points and routes",
-            "deploy": "Apply changes"
+            "deploy": "Apply changes",
+            "openDetail": "Open detail"
         },
         "success": {
             "created": "Gateway created, pending deploy",
@@ -501,6 +502,21 @@
         "loadFailed": "Failed to load gateway details",
         "saveFailed": "Failed to save configuration",
         "pending": "Changes have not been applied to the runtime yet",
+        "loading": "Loading gateway…",
+        "nav": {
+            "group": "Gateway",
+            "overview": "Overview",
+            "routes": "Entry & Routes"
+        },
+        "overview": {
+            "platform": "Target platform",
+            "version": "Version / Image",
+            "status": "Status",
+            "updatedAt": "Updated at",
+            "description": "Description",
+            "deploySection": "Deploy runtime",
+            "idle": "No deployment log yet"
+        },
         "deploy": {
             "apply": "Apply changes",
             "redeploy": "Redeploy",
@@ -526,7 +542,16 @@
             "domains": "Domains (comma-separated)",
             "certificate": "HTTPS certificate",
             "noCertificate": "HTTPS disabled",
-            "deleteConfirm": "Delete entry point \"{name}\" and all of its routes?"
+            "deleteConfirm": "Delete entry point \"{name}\" and all of its routes?",
+            "routeCount": "{count} routes",
+            "extraConfig": {
+                "title": "Advanced",
+                "webSocket": "WebSocket support",
+                "clientMaxBodySize": "Max upload size",
+                "clientMaxBodySizeHint": "nginx size, e.g. 100m / 512k; 0 = unlimited",
+                "enabled": "Enabled",
+                "disabled": "Disabled"
+            }
         },
         "route": {
             "title": "Traffic routes",
@@ -549,6 +574,14 @@
             "type": {
                 "PROXY": "Proxy service",
                 "STATIC": "Static resources"
+            },
+            "extraConfig": {
+                "webSocket": "WebSocket support",
+                "wsInherit": "Inherit from entry point",
+                "wsEnable": "Enable",
+                "wsDisable": "Disable",
+                "clientMaxBodySize": "Max upload size",
+                "clientMaxBodySizeInherit": "Inherit from entry point"
             }
         },
         "success": {
@@ -703,7 +736,12 @@
             "staticFile": {
                 "readFailed": "Failed to read or extract the static resource ZIP"
             },
-            "bundleFailed": "Failed to build the gateway deployment bundle"
+            "bundleFailed": "Failed to build the gateway deployment bundle",
+            "extraConfig": {
+                "clientMaxBodySize": {
+                    "invalid": "Invalid max upload size; must be nginx size syntax, e.g. 100m, 512k, 0"
+                }
+            }
         },
         "gatewayEntryPoint": {
             "notFound": "Gateway entry point not found",
