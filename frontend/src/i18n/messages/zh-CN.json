@@ -436,7 +436,8 @@
         "actions": {
             "toggleLog": "展开/收起进度日志",
             "manage": "管理入口与路由",
-            "deploy": "应用变更"
+            "deploy": "应用变更",
+            "openDetail": "查看详情"
         },
         "success": {
             "created": "网关已创建，待部署",
@@ -502,6 +503,21 @@
         "loadFailed": "网关详情加载失败",
         "saveFailed": "配置保存失败",
         "pending": "存在尚未应用到运行时的变更",
+        "loading": "网关加载中…",
+        "nav": {
+            "group": "网关管理",
+            "overview": "概览",
+            "routes": "入口与路由"
+        },
+        "overview": {
+            "platform": "目标平台",
+            "version": "版本/镜像",
+            "status": "状态",
+            "updatedAt": "更新时间",
+            "description": "描述",
+            "deploySection": "部署运行时",
+            "idle": "暂无部署日志"
+        },
         "deploy": {
             "apply": "应用变更",
             "redeploy": "重新部署",
@@ -527,7 +543,8 @@
             "domains": "响应域名（逗号分隔）",
             "certificate": "HTTPS 证书",
             "noCertificate": "不启用 HTTPS",
-            "deleteConfirm": "删除入口「{name}」及其全部路由？"
+            "deleteConfirm": "删除入口「{name}」及其全部路由？",
+            "routeCount": "{count} 条路由"
         },
         "route": {
             "title": "流量路由",

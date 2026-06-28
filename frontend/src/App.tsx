@@ -9,6 +9,8 @@ import { VersionProvider } from "@/context/version-provider";
 import { CredentialsPage } from "@/features/credentials/credentials-page";
 import { GatewaysPage } from "@/features/gateways/gateways-page";
 import { GatewayDetailPage } from "@/features/gateways/gateway-detail-page";
+import { GatewayOverviewPanel } from "@/features/gateways/gateway-overview-panel";
+import { GatewayRoutesPanel } from "@/features/gateways/gateway-routes-panel";
 import { FilesPage } from "@/features/files/files-page";
 import { HomePage } from "@/features/home/home-page";
 import { LoginPage } from "@/features/login/login-page";
@@ -65,10 +67,6 @@ function App() {
                                             element={<GatewaysPage />}
                                         />
                                         <Route
-                                            path="/gateways/:gatewayId"
-                                            element={<GatewayDetailPage />}
-                                        />
-                                        <Route
                                             path="/files"
                                             element={<FilesPage />}
                                         />
@@ -105,6 +103,19 @@ function App() {
                                             element={
                                                 <HostPlaceholderPanel kind="cron" />
                                             }
+                                        />
+                                    </Route>
+                                    <Route
+                                        path="/gateways/:gatewayId"
+                                        element={<GatewayDetailPage />}
+                                    >
+                                        <Route
+                                            index
+                                            element={<GatewayOverviewPanel />}
+                                        />
+                                        <Route
+                                            path="routes"
+                                            element={<GatewayRoutesPanel />}
                                         />
                                     </Route>
                                 </Route>

@@ -435,7 +435,8 @@
         "actions": {
             "toggleLog": "Toggle progress log",
             "manage": "Manage entry points and routes",
-            "deploy": "Apply changes"
+            "deploy": "Apply changes",
+            "openDetail": "Open detail"
         },
         "success": {
             "created": "Gateway created, pending deploy",
@@ -501,6 +502,21 @@
         "loadFailed": "Failed to load gateway details",
         "saveFailed": "Failed to save configuration",
         "pending": "Changes have not been applied to the runtime yet",
+        "loading": "Loading gateway…",
+        "nav": {
+            "group": "Gateway",
+            "overview": "Overview",
+            "routes": "Entry & Routes"
+        },
+        "overview": {
+            "platform": "Target platform",
+            "version": "Version / Image",
+            "status": "Status",
+            "updatedAt": "Updated at",
+            "description": "Description",
+            "deploySection": "Deploy runtime",
+            "idle": "No deployment log yet"
+        },
         "deploy": {
             "apply": "Apply changes",
             "redeploy": "Redeploy",
@@ -526,7 +542,8 @@
             "domains": "Domains (comma-separated)",
             "certificate": "HTTPS certificate",
             "noCertificate": "HTTPS disabled",
-            "deleteConfirm": "Delete entry point \"{name}\" and all of its routes?"
+            "deleteConfirm": "Delete entry point \"{name}\" and all of its routes?",
+            "routeCount": "{count} routes"
         },
         "route": {
             "title": "Traffic routes",
