@@ -5,6 +5,21 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      build_backend:
+        description: Build and push the backend image
+        required: true
+        type: boolean
+        default: true
+      build_frontend:
+        description: Build and push the frontend image
+        required: true
+        type: boolean
+        default: true
+      vite_backend_url:
+        description: Override VITE_BACKEND_URL for the frontend static build
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -35,8 +50,8 @@ jobs:
           set -euo pipefail
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            backend_changed=true
-            frontend_changed=true
+            backend_changed="${{ inputs.build_backend }}"
+            frontend_changed="${{ inputs.build_frontend }}"
           else
             empty_tree="$(git hash-object -t tree /dev/null)"
             if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
@@ -148,7 +163,7 @@ jobs:
 
       - name: Build static assets
         env:
-          VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}
+          VITE_BACKEND_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.vite_backend_url || secrets.VITE_BACKEND_URL }}
         run: |
           set -euo pipefail
 
